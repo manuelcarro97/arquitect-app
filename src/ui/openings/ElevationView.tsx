@@ -22,16 +22,13 @@ const DIMENSION_GAP_PX = 22;
 interface Drag {
   id: Id;
   startX: number;
-  startY: number;
   startOffset: number;
-  startSill: number;
   offset: number;
-  sillHeight: number;
 }
 
 /**
  * Front view of one wall (seen from face A, wall start on the left) to place and size its openings.
- * Doors slide horizontally; windows also vertically (sill height).
+ * Openings only slide horizontally; the sill height is typed in the side panel so it never changes by accident.
  */
 export function ElevationView() {
   const floor = useActiveFloor();
@@ -53,12 +50,12 @@ export function ElevationView() {
   const x = (u: number) => left + u * scale;
   const y = (z: number) => bottom - z * scale;
 
-  const dragResult = drag ? updateOpening(floor, drag.id, { offset: drag.offset, sillHeight: drag.sillHeight }) : null;
+  const dragResult = drag ? updateOpening(floor, drag.id, { offset: drag.offset }) : null;
   const shown = dragResult?.ok ? dragResult.value : floor;
   const invalid = new Set(invalidOpeningIds(shown));
   if (drag && dragResult && !dragResult.ok) invalid.add(drag.id);
   const openings = shown.openings
-    .map((opening) => (drag && opening.id === drag.id ? { ...opening, offset: drag.offset, sillHeight: drag.sillHeight } : opening))
+    .map((opening) => (drag && opening.id === drag.id ? { ...opening, offset: drag.offset } : opening))
     .filter((opening) => opening.wallId === wall.id)
     .sort((a, b) => a.offset - b.offset);
   const selectedId = selection?.kind === 'opening' ? selection.id : null;
@@ -66,15 +63,7 @@ export function ElevationView() {
   const startDrag = (opening: Opening, event: PointerEvent<SVGRectElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     select({ kind: 'opening', id: opening.id });
-    setDrag({
-      id: opening.id,
-      startX: event.clientX,
-      startY: event.clientY,
-      startOffset: opening.offset,
-      startSill: opening.sillHeight,
-      offset: opening.offset,
-      sillHeight: opening.sillHeight,
-    });
+    setDrag({ id: opening.id, startX: event.clientX, startOffset: opening.offset, offset: opening.offset });
   };
 
   const moveDrag = (event: PointerEvent<SVGSVGElement>) => {
@@ -85,21 +74,12 @@ export function ElevationView() {
       Math.max(Math.round(drag.startOffset + (event.clientX - drag.startX) / scale), 0),
       Math.floor(wall.length - opening.width),
     );
-    const sillHeight =
-      opening.type === 'window'
-        ? Math.min(
-            Math.max(Math.round(drag.startSill - (event.clientY - drag.startY) / scale), 0),
-            Math.floor(wall.height - opening.height),
-          )
-        : drag.sillHeight;
-    if (offset !== drag.offset || sillHeight !== drag.sillHeight) setDrag({ ...drag, offset, sillHeight });
+    if (offset !== drag.offset) setDrag({ ...drag, offset });
   };
 
   const endDrag = () => {
     if (!drag) return;
-    if (drag.offset !== drag.startOffset || drag.sillHeight !== drag.startSill) {
-      useProjectStore.getState().updateOpening(drag.id, { offset: drag.offset, sillHeight: drag.sillHeight });
-    }
+    if (drag.offset !== drag.startOffset) useProjectStore.getState().updateOpening(drag.id, { offset: drag.offset });
     setDrag(null);
   };
 
@@ -202,8 +182,8 @@ export function ElevationView() {
         </svg>
       )}
       <div className="elevation__hint">
-        Arrastra un hueco para moverlo{openings.some((o) => o.type === 'window') ? ' (las ventanas también en altura)' : ''} · las
-        medidas exactas se editan en el panel lateral
+        Arrastra un hueco para moverlo a lo largo de la pared · la altura del alféizar y las medidas exactas se editan en el
+        panel lateral
       </div>
     </div>
   );
