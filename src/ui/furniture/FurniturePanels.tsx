@@ -100,3 +100,49 @@ export function FurnitureCatalog() {
     </section>
   );
 }
+
+/** Side panel of Amueblar mode: catalog and the pieces already placed. */
+export function FurnishPanel() {
+  const floor = useActiveFloor();
+  const selection = useProjectStore((state) => state.selection);
+  const select = useProjectStore((state) => state.select);
+  const outside = new Set(furnitureOutsideIds(floor));
+
+  return (
+    <section className="panel">
+      <h2 className="panel__title">Amueblar</h2>
+      <p className="panel__help">Paredes, tabiques y huecos están bloqueados en este modo: solo se mueven muebles.</p>
+      <FurnitureCatalog />
+      <section className="details">
+        <h3 className="details__title">En el plano ({floor.furniture.length})</h3>
+        {floor.furniture.length === 0 ? (
+          <p className="panel__help">Todavía no hay muebles.</p>
+        ) : (
+          <ul className="catalog-list">
+            {floor.furniture.map((item) => {
+              const info = catalogItem(item.catalogId);
+              const selected = selection?.kind === 'furniture' && selection.id === item.id;
+              return (
+                <li key={item.id}>
+                  <button
+                    className={`catalog-item ${selected ? 'is-active' : ''}`}
+                    onClick={() => select({ kind: 'furniture', id: item.id })}
+                  >
+                    <span className="catalog-item__swatch" style={{ background: info.color }} />
+                    <span className="catalog-item__name">
+                      {info.name}
+                      {outside.has(item.id) ? ' ⚠' : ''}
+                    </span>
+                    <span className="catalog-item__size">
+                      {item.width}×{item.depth}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </section>
+  );
+}

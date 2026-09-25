@@ -7,6 +7,7 @@ import { useActiveFloor } from '../../store/selectors';
 import { useElementSize } from '../hooks/useElementSize';
 import { CANVAS_COLORS } from './colors';
 import { Grid } from './Grid';
+import { useFurnishController } from './furnish/useFurnishController';
 import { useLayoutController } from './layout/useLayoutController';
 import { ElevationView } from '../openings/ElevationView';
 import { ANGLE_STEPS, type AngleStep } from './snap';
@@ -45,7 +46,8 @@ export function Editor2D() {
   const context = { floor, scale: effectiveViewport.scale, angleStep };
   const structure = useStructureController({ ...context, active: mode === 'structure' });
   const layout = useLayoutController({ ...context, active: mode === 'layout' });
-  const controller = mode === 'structure' ? structure : layout;
+  const furnish = useFurnishController({ ...context, active: mode === 'furnish' });
+  const controller = mode === 'structure' ? structure : mode === 'layout' ? layout : furnish;
 
   const handleWheel = (event: KonvaEventObject<WheelEvent>) => {
     event.evt.preventDefault();

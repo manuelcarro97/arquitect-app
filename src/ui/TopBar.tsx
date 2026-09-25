@@ -75,6 +75,14 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
           >
             Distribución
           </button>
+          <button
+            className={mode === 'furnish' ? 'is-active' : ''}
+            disabled={!perimeterClosed}
+            onClick={() => setMode('furnish')}
+            title={perimeterClosed ? 'Colocar muebles (paredes y tabiques bloqueados)' : 'Cierra el perímetro para amueblar'}
+          >
+            Amueblar
+          </button>
         </div>
       </div>
 

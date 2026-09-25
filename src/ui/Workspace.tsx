@@ -11,7 +11,7 @@ import { useProjectStore } from '../store/projectStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Editor2D } from './editor2d/Editor2D';
 import { LayoutPanel } from './layout/LayoutPanel';
-import { FurnitureDetails } from './furniture/FurniturePanels';
+import { FurnishPanel, FurnitureDetails } from './furniture/FurniturePanels';
 import { OpeningDetails } from "./openings/OpeningDetails";
 import { SegmentTable } from './structure/SegmentTable';
 
@@ -54,7 +54,7 @@ function togglePanel(panel: PanelImperativeHandle | null) {
 export function Workspace() {
   const projectId = useProjectStore((state) => state.project.id);
   const mode = useProjectStore((state) => state.mode);
-  const panelName = mode === 'structure' ? 'Perímetro' : 'Distribución';
+  const panelName = mode === 'structure' ? 'Perímetro' : mode === 'layout' ? 'Distribución' : 'Amueblar';
   const [viewerPanel, setViewerPanel] = usePanelCallbackRef();
   const [viewerCollapsed, setViewerCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
@@ -124,7 +124,7 @@ export function Workspace() {
           <ErrorBoundary area="el panel lateral">
             <OpeningDetails />
             <FurnitureDetails />
-            {mode === 'structure' ? <SegmentTable /> : <LayoutPanel />}
+            {mode === 'structure' ? <SegmentTable /> : mode === 'layout' ? <LayoutPanel /> : <FurnishPanel />}
           </ErrorBoundary>
         </aside>
       )}

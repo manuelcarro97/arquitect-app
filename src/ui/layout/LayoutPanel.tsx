@@ -11,7 +11,6 @@ import {
 import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
 import { NumberCell } from '../components/NumberCell';
-import { FurnitureCatalog } from '../furniture/FurniturePanels';
 import { formatM2 } from '../format';
 
 const ROOM_NAMES = [
@@ -138,8 +137,6 @@ export function LayoutPanel() {
           {invalid.size === 1 ? 'Hay 1 tabique' : `Hay ${invalid.size} tabiques`} fuera del perímetro (en rojo).
         </p>
       )}
-
-      <FurnitureCatalog />
 
       {selectedPartition && <PartitionDetails partition={selectedPartition} invalid={invalid.has(selectedPartition.id)} />}
 

@@ -50,7 +50,7 @@ import {
   type ZoneInput,
 } from '../domain';
 
-export type EditorMode = 'structure' | 'layout';
+export type EditorMode = 'structure' | 'layout' | 'furnish';
 export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening' | 'furniture';
 export type Selection = { kind: SelectionKind; id: Id } | null;
 export type NewVersionSource = 'current' | 'perimeter' | 'empty';
@@ -227,7 +227,7 @@ export const useProjectStore = create<ProjectState>()(
         },
         setMode: (mode) => {
           const version = findVersion(get().project, get().activeVersionId);
-          if (mode === 'layout' && version && !isPerimeterClosed(version.floor.perimeter)) {
+          if (mode !== 'structure' && version && !isPerimeterClosed(version.floor.perimeter)) {
             return set({ lastError: 'PERIMETER_NOT_CLOSED' });
           }
           set({ mode, selection: null });
@@ -330,7 +330,7 @@ export const useProjectStore = create<ProjectState>()(
           // The copy appears slightly offset so both are visible.
           get().addFurniture({ ...input, x: input.x + 20, y: input.y + 20 });
         },
-        startPlacingFurniture: (catalogId) => set({ placingFurniture: catalogId, mode: 'layout' }),
+        startPlacingFurniture: (catalogId) => set({ placingFurniture: catalogId, mode: 'furnish' }),
         stopPlacingFurniture: () => set({ placingFurniture: null }),
         removeSelection: () => {
           const { selection } = get();

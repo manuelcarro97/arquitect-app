@@ -93,7 +93,8 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     selectable: active && tool === 'select',
     onExitTool: exitTool,
   });
-  const furniture = useFurniture({ floor: displayed, scale, active, selectable: active && tool === 'select' });
+  // Furniture is only shown here; it is edited in Amueblar mode.
+  const furniture = useFurniture({ floor: displayed, scale, active: false, selectable: false });
   const invalidIds = new Set(invalidPartitionIds(displayed));
   if (drag && !previewFloor && drag.kind !== 'vertex') invalidIds.add(drag.id);
 
@@ -128,7 +129,6 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
   };
 
   const chooseTool = (next: LayoutTool) => {
-    furniture.cancelPlacing();
     partitionTool.reset();
     zoneTool.reset();
     setTool(next);
@@ -138,7 +138,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     ? 'El perímetro no está cerrado: ciérralo en modo Estructura para distribuir el interior.'
     : drag && !previewFloor
       ? 'Ahí no: el tabique saldría del perímetro.'
-      : (furniture.hint ?? openings.hint ?? partitionTool.hint ?? zoneTool.hint ?? SELECT_HINT);
+      : (openings.hint ?? partitionTool.hint ?? zoneTool.hint ?? SELECT_HINT);
 
   return {
     tools: [
@@ -227,10 +227,9 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
       </>
     ),
     hint,
-    cursor: tool === 'select' && !furniture.isPlacing ? 'default' : 'crosshair',
+    cursor: tool === 'select' ? 'default' : 'crosshair',
     onPointerMove: (world, shiftKey) => {
       if (openings.handlePointerMove(world)) return;
-      if (furniture.handlePointerMove(world, shiftKey)) return;
       if (drag) {
         const tolerance = SNAP_PX / scale;
         if (drag.kind === 'partition') {
@@ -260,14 +259,12 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
       zoneTool.handlePointerMove(world);
     },
     onClick: (_world, onEmpty) => {
-      if (furniture.handleClick()) return;
       if (tool === 'partition') partitionTool.handleClick();
       else if (tool === 'zone') zoneTool.handleClick();
       else if (tool === 'door' || tool === 'window') openings.handleClick();
       else if (onEmpty) select(null);
     },
     onSecondaryClick: () => {
-      if (furniture.cancelPlacing()) return;
       if (tool === 'partition') partitionTool.handleSecondaryClick();
       else if (tool === 'zone') zoneTool.handleSecondaryClick();
       else if (tool !== 'select') setTool('select');
