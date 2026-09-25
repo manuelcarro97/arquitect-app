@@ -49,6 +49,7 @@ function CameraFit({ bounds, controls, fitRequest }: { bounds: SceneBounds | nul
 export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const floor = useActiveFloor();
   const selection = useProjectStore((state) => state.selection);
+  const mode = useProjectStore((state) => state.mode);
   const elevationWallId = useProjectStore((state) => state.elevationWallId);
   const elevationSide = useProjectStore((state) => state.elevationSide);
   const [controls, setControls] = useState<Controls | null>(null);
@@ -88,7 +89,12 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
         {polygon && <FloorMesh polygon={polygon} />}
         <ZoneFloors zones={floor.zones} />
         <OpeningMeshes floor={floor} />
-        <FurnitureMeshes furniture={floor.furniture} selectedId={selection?.kind === 'furniture' ? selection.id : null} />
+        <FurnitureMeshes
+          furniture={floor.furniture}
+          selectedId={selection?.kind === 'furniture' ? selection.id : null}
+          editable={mode === 'furnish'}
+          walls={walls}
+        />
         {elevationWall && <ViewpointArrow wall={elevationWall} side={elevationSide} />}
         {walls.map((wall) => (
           <WallMesh
