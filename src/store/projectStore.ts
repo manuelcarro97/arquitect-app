@@ -6,6 +6,7 @@ import {
   createProject,
   duplicateVersion,
   findVersion,
+  mergeCollinearSegments,
   moveSegment,
   ok,
   removeOpeningsOnWall,
@@ -86,7 +87,7 @@ export const useProjectStore = create<ProjectState>()(
       const editPerimeter = (operation: (perimeter: Perimeter) => Result<Perimeter>): boolean =>
         editFloor((floor) => {
           const result = operation(floor.perimeter);
-          return result.ok ? ok({ ...floor, perimeter: result.value }) : result;
+          return result.ok ? ok(mergeCollinearSegments({ ...floor, perimeter: result.value })) : result;
         });
 
       const replaceProject = (project: Project) => {
@@ -141,7 +142,9 @@ export const useProjectStore = create<ProjectState>()(
         removePerimeterSegment: (segmentId) => {
           const removed = editFloor((floor) => {
             const result = removeSegment(floor.perimeter, segmentId);
-            return result.ok ? ok(removeOpeningsOnWall({ ...floor, perimeter: result.value }, segmentId)) : result;
+            return result.ok
+              ? ok(mergeCollinearSegments(removeOpeningsOnWall({ ...floor, perimeter: result.value }, segmentId)))
+              : result;
           });
           if (removed) set({ selection: null });
         },

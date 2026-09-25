@@ -17,22 +17,25 @@ export interface DrawPreview {
   angle: number;
 }
 
+/** Angle snapping options for drawing. 0 = free (rounded to 0.1°). */
+export const ANGLE_STEPS = [90, 45, 15, 0] as const;
+export type AngleStep = (typeof ANGLE_STEPS)[number];
+
 /**
  * Segment that would be drawn from `from` towards the pointer.
- * By default the angle snaps to 0/90/180/270 and the length to 5 cm; `freeAngle` disables the angle snap.
+ * The angle snaps to multiples of `angleStep` (0 = free) and the length to 5 cm.
  * `typedLength` (entered with the keyboard) overrides the pointer distance.
  */
 export function computeDrawPreview(
   from: Point,
   pointer: Point,
-  options: { freeAngle: boolean; typedLength: number | null },
+  options: { angleStep: AngleStep; typedLength: number | null },
 ): DrawPreview | null {
   const rawAngle = angleBetween(from, pointer);
-  const angle = options.freeAngle ? Math.round(rawAngle * 10) / 10 : normalizeAngle(snapToStep(rawAngle, 90));
+  const free = options.angleStep === 0;
+  const angle = free ? Math.round(rawAngle * 10) / 10 : normalizeAngle(snapToStep(rawAngle, options.angleStep));
   const unit = direction(angle);
-  const projected = options.freeAngle
-    ? distance(from, pointer)
-    : (pointer.x - from.x) * unit.x + (pointer.y - from.y) * unit.y;
+  const projected = free ? distance(from, pointer) : (pointer.x - from.x) * unit.x + (pointer.y - from.y) * unit.y;
   const length = options.typedLength ?? snapToStep(projected, LENGTH_STEP_CM);
   if (!(length > 0)) return null;
   return { from, to: pointFromPolar(from, length, angle), length, angle };

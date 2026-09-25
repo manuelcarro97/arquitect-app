@@ -182,6 +182,9 @@ select:focus {
 
 .segmented button:last-child {
   border-radius: 0 6px 6px 0;
+}
+
+.segmented button + button {
   margin-left: -1px;
 }
 

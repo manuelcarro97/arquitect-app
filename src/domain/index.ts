@@ -8,3 +8,4 @@ export * from './openings';
 export * from './partitions';
 export * from './zones';
 export * from './project';
+export * from './merge';

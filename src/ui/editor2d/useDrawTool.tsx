@@ -4,7 +4,7 @@ import { distance, perimeterCorners, type Perimeter, type Point } from '../../do
 import { useProjectStore } from '../../store/projectStore';
 import { formatCm, formatDegrees } from '../format';
 import { CANVAS_COLORS } from './colors';
-import { computeDrawPreview, LENGTH_STEP_CM, snapPointToGrid } from './snap';
+import { computeDrawPreview, LENGTH_STEP_CM, snapPointToGrid, type AngleStep } from './snap';
 
 const CLOSE_SNAP_PX = 14;
 const LABEL_FONT_PX = 13;
@@ -13,6 +13,7 @@ interface DrawToolOptions {
   enabled: boolean;
   perimeter: Perimeter;
   scale: number;
+  angleStep: AngleStep;
   onExit: () => void;
 }
 
@@ -24,7 +25,7 @@ function isTypingInForm(target: EventTarget | null): boolean {
  * Perimeter drawing tool: first click places the start, each click adds a segment,
  * typing a number + Enter fixes the exact length, clicking the start closes the perimeter.
  */
-export function useDrawTool({ enabled, perimeter, scale, onExit }: DrawToolOptions) {
+export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: DrawToolOptions) {
   const appendSegment = useProjectStore((state) => state.appendPerimeterSegment);
   const closePerimeter = useProjectStore((state) => state.closePerimeter);
   const setStart = useProjectStore((state) => state.setPerimeterStart);
@@ -45,7 +46,9 @@ export function useDrawTool({ enabled, perimeter, scale, onExit }: DrawToolOptio
     distance(pointer, perimeter.start) <= CLOSE_SNAP_PX / scale;
   const preview =
     enabled && !awaitingStart && pointer && !snapsToStart
-      ? computeDrawPreview(last, pointer, { freeAngle, typedLength: Number.isFinite(typedLength) ? typedLength : null })
+      ? computeDrawPreview(last, pointer, {
+          angleStep: freeAngle ? 0 : angleStep,
+          typedLength: Number.isFinite(typedLength) ? typedLength : null })
       : null;
 
   const commit = () => {

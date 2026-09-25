@@ -10,6 +10,7 @@ import { CANVAS_COLORS } from './colors';
 import { Grid } from './Grid';
 import { PerimeterLayer } from './PerimeterLayer';
 import { useDrawTool } from './useDrawTool';
+import { ANGLE_STEPS, type AngleStep } from './snap';
 import { fitPoints, zoomAt, type Viewport } from './viewport';
 
 type Tool = 'draw' | 'select';
@@ -38,6 +39,7 @@ export function Editor2D() {
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [chosenTool, setChosenTool] = useState<Tool>('draw');
   const [wallDrag, setWallDrag] = useState<WallDrag | null>(null);
+  const [angleStep, setAngleStep] = useState<AngleStep>(90);
 
   const closed = isPerimeterClosed(perimeter);
   const tool: Tool = closed ? 'select' : chosenTool;
@@ -47,6 +49,7 @@ export function Editor2D() {
     enabled: tool === 'draw',
     perimeter,
     scale: effectiveViewport.scale,
+    angleStep,
     onExit: () => setChosenTool('select'),
   });
 
@@ -172,6 +175,15 @@ export function Editor2D() {
           ↖ Seleccionar
         </button>
         <button onClick={() => setViewport(fitPoints(perimeterCorners(perimeter), width, height))}>⤢ Encuadrar</button>
+        {tool === 'draw' && (
+          <div className="segmented" role="group" aria-label="Ajuste de ángulo" title="Ajuste de ángulo al dibujar (Shift = libre)">
+            {ANGLE_STEPS.map((step) => (
+              <button key={step} className={angleStep === step ? 'is-active' : ''} onClick={() => setAngleStep(step)}>
+                {step === 0 ? 'Libre' : `${step}°`}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {wallDrag && wallDrag.offset !== 0 && (
