@@ -243,7 +243,7 @@ export const useProjectStore = create<ProjectState>()(
           if (mode !== 'structure' && version && !isPerimeterClosed(version.floor.perimeter)) {
             return set({ lastError: 'PERIMETER_NOT_CLOSED' });
           }
-          set({ mode, selection: null });
+          set({ mode, selection: null, elevationWallId: null });
         },
         select: (selection) => set({ selection }),
         requestLengthEdit: (segmentId) => set({ lengthEditRequest: segmentId }),

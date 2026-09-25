@@ -11,12 +11,11 @@ interface SurfaceMaterialProps {
   fallback: string;
   /** Size of the surface (cm) for boxes with 0..1 UVs; omit for flat shapes whose UVs are in metres. */
   sizeCm?: { width: number; height: number };
-  highlighted?: boolean;
   polygonOffsetFactor?: number;
 }
 
 /** Standard material showing a finish (colour or real-scale texture) on one surface. */
-export function SurfaceMaterial({ attach, materialId, fallback, sizeCm, highlighted = false, polygonOffsetFactor }: SurfaceMaterialProps) {
+export function SurfaceMaterial({ attach, materialId, fallback, sizeCm, polygonOffsetFactor }: SurfaceMaterialProps) {
   const width = sizeCm?.width;
   const height = sizeCm?.height;
   const map = useMemo(() => {
@@ -34,8 +33,6 @@ export function SurfaceMaterial({ attach, materialId, fallback, sizeCm, highligh
       color={map ? '#ffffff' : (info?.color ?? fallback)}
       map={map}
       roughness={info?.roughness ?? 0.9}
-      emissive={highlighted ? '#d9622b' : '#000000'}
-      emissiveIntensity={highlighted ? 0.35 : 0}
       polygonOffset={polygonOffsetFactor !== undefined}
       polygonOffsetFactor={polygonOffsetFactor ?? 0}
       polygonOffsetUnits={polygonOffsetFactor ?? 0}

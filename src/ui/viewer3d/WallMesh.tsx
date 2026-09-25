@@ -12,9 +12,7 @@ interface WallMeshProps {
   selected: boolean;
   /** Wall currently shown in the elevation view. */
   highlighted?: boolean;
-  /** Face selected in Acabados mode, shown with a glow. */
-  selectedSide?: WallSide | null;
-  /** Acabados mode: clicking face A or B of the wall. */
+  /** Acabados mode: clicking face A or B of the wall (double click is then disabled). */
   onFaceClick?: (side: WallSide) => void;
 }
 
@@ -26,7 +24,7 @@ const FACE_A_INDEX = 4;
 const FACE_B_INDEX = 5;
 const PLAIN_FACES = [0, 1, 2, 3];
 
-export function WallMesh({ wall, angle, openings, selected, highlighted = false, selectedSide = null, onFaceClick }: WallMeshProps) {
+export function WallMesh({ wall, angle, openings, selected, highlighted = false, onFaceClick }: WallMeshProps) {
   const unit = direction(angle);
   // Perimeter walls are lengthened by half their thickness so the corners close.
   const extension = wall.kind === 'perimeter' ? wall.thickness / 2 : 0;
@@ -52,10 +50,14 @@ export function WallMesh({ wall, angle, openings, selected, highlighted = false,
               event.stopPropagation();
               onFaceClick(index === FACE_A_INDEX ? 'A' : 'B');
             }}
-            onDoubleClick={(event) => {
-              event.stopPropagation();
-              openElevation(wall.id);
-            }}
+            onDoubleClick={
+              onFaceClick
+                ? undefined
+                : (event) => {
+                    event.stopPropagation();
+                    openElevation(wall.id);
+                  }
+            }
           >
             <boxGeometry args={[sizeCm.width * CM_TO_M, sizeCm.height * CM_TO_M, wall.thickness * CM_TO_M]} />
             {PLAIN_FACES.map((face) => (
@@ -66,14 +68,12 @@ export function WallMesh({ wall, angle, openings, selected, highlighted = false,
               materialId={highlighted || selected ? undefined : wall.finishA}
               fallback={color}
               sizeCm={sizeCm}
-              highlighted={selectedSide === 'A'}
             />
             <SurfaceMaterial
               attach={`material-${FACE_B_INDEX}`}
               materialId={highlighted || selected ? undefined : wall.finishB}
               fallback={color}
               sizeCm={sizeCm}
-              highlighted={selectedSide === 'B'}
             />
             <Edges color={SCENE_COLORS.wallEdge} threshold={20} />
           </mesh>

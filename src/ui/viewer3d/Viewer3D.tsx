@@ -105,7 +105,6 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
             openings={floor.openings}
             selected={wall.id === selectedId}
             highlighted={wall.id === elevationWallId}
-            selectedSide={selection?.kind === 'wallFace' && selection.id === wall.id ? (selection.side ?? null) : null}
             onFaceClick={mode === 'finishes' ? (side) => select({ kind: 'wallFace', id: wall.id, side }) : undefined}
           />
         ))}
