@@ -21,7 +21,8 @@ import {
   addPartition,
   addZone,
   isPerimeterClosed,
-  movePartition,
+  movePartitionEndpoint,
+  movePartitionPerpendicular,
   removePartition,
   removeZone,
   setPartitionEndpoints,
@@ -75,7 +76,10 @@ export interface ProjectState {
   removePerimeterSegment: (segmentId: Id) => void;
 
   addPartition: (a: Point, b: Point) => boolean;
-  movePartition: (partitionId: Id, delta: Point) => void;
+  /** Moves a partition perpendicular to itself; linked partitions follow. */
+  movePartition: (partitionId: Id, offset: number) => void;
+  /** Moves one end of a partition; partitions joined there follow. */
+  movePartitionEndpoint: (partitionId: Id, end: 'a' | 'b', point: Point) => void;
   setPartitionEndpoints: (partitionId: Id, a: Point, b: Point) => void;
   setPartitionLength: (partitionId: Id, length: number) => void;
   removePartition: (partitionId: Id) => void;
@@ -221,8 +225,11 @@ export const useProjectStore = create<ProjectState>()(
         },
 
         addPartition: (a, b) => editPartitions((floor) => addPartition(floor, a, b)),
-        movePartition: (partitionId, delta) => {
-          editPartitions((floor) => movePartition(floor, partitionId, delta));
+        movePartition: (partitionId, offset) => {
+          editPartitions((floor) => movePartitionPerpendicular(floor, partitionId, offset));
+        },
+        movePartitionEndpoint: (partitionId, end, point) => {
+          editPartitions((floor) => movePartitionEndpoint(floor, partitionId, end, point));
         },
         setPartitionEndpoints: (partitionId, a, b) => {
           editPartitions((floor) => setPartitionEndpoints(floor, partitionId, a, b));

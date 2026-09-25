@@ -9,3 +9,4 @@ export * from './partitions';
 export * from './zones';
 export * from './project';
 export * from './merge';
+export * from './partitionLinks';

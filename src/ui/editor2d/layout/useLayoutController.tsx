@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import {
   angleBetween,
   direction,
+  distance,
   invalidPartitionIds,
   isPerimeterClosed,
-  movePartition,
-  setPartitionEndpoints,
+  movePartitionEndpoint,
+  movePartitionPerpendicular,
   updateZone,
   type Floor,
   type Id,
@@ -40,18 +41,12 @@ function worldFrom(event: KonvaEventObject<MouseEvent>): Point | null {
 /** Applies the drag in progress to the floor, for previewing. Returns null if the move is not allowed. */
 function applyDrag(floor: Floor, drag: Drag): Floor | null {
   if (drag.kind === 'partition') {
-    const partition = floor.partitions.find((p) => p.id === drag.id);
-    if (!partition || drag.offset === 0) return floor;
-    const unit = direction(angleBetween(partition.a, partition.b));
-    const result = movePartition(floor, drag.id, { x: -unit.y * drag.offset, y: unit.x * drag.offset });
+    if (drag.offset === 0) return floor;
+    const result = movePartitionPerpendicular(floor, drag.id, drag.offset);
     return result.ok ? result.value : null;
   }
   if (drag.kind === 'endpoint') {
-    const partition = floor.partitions.find((p) => p.id === drag.id);
-    if (!partition) return floor;
-    const a = drag.end === 'a' ? drag.point : partition.a;
-    const b = drag.end === 'b' ? drag.point : partition.b;
-    const result = setPartitionEndpoints(floor, drag.id, a, b);
+    const result = movePartitionEndpoint(floor, drag.id, drag.end, drag.point);
     return result.ok ? result.value : null;
   }
   const zone = floor.zones.find((z) => z.id === drag.zoneId);
@@ -93,18 +88,12 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
   useEffect(() => {
     if (!drag) return;
     const onMouseUp = () => {
-      const { movePartition: move, setPartitionEndpoints: setEnds, updateZone: setZone } = store();
+      const { movePartition, movePartitionEndpoint: moveEnd, updateZone: setZone } = store();
       if (drag.kind === 'partition' && drag.offset !== 0) {
-        const partition = floor.partitions.find((p) => p.id === drag.id);
-        if (partition) {
-          const unit = direction(angleBetween(partition.a, partition.b));
-          move(drag.id, { x: -unit.y * drag.offset, y: unit.x * drag.offset });
-        }
+        movePartition(drag.id, drag.offset);
       } else if (drag.kind === 'endpoint') {
         const partition = floor.partitions.find((p) => p.id === drag.id);
-        if (partition) {
-          setEnds(drag.id, drag.end === 'a' ? drag.point : partition.a, drag.end === 'b' ? drag.point : partition.b);
-        }
+        if (partition && distance(partition[drag.end], drag.point) > 0) moveEnd(drag.id, drag.end, drag.point);
       } else if (drag.kind === 'vertex') {
         const zone = floor.zones.find((z) => z.id === drag.zoneId);
         if (zone) setZone(drag.zoneId, { points: zone.points.map((p, i) => (i === drag.index ? drag.point : p)) });
@@ -215,8 +204,12 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
           const offset = Math.round((world.x - drag.origin.x) * -unit.y + (world.y - drag.origin.y) * unit.x);
           if (offset !== drag.offset) setDrag({ ...drag, offset });
         } else if (drag.kind === 'endpoint') {
+          const partition = floor.partitions.find((p) => p.id === drag.id);
           const targets = snapTargetsFor(floor, { excludePartitionId: drag.id });
-          setDrag({ ...drag, point: snapPoint(world, targets, tolerance, LENGTH_STEP_CM).point });
+          // Linked ends move along with this one, so their current position is not a useful target.
+          const origin = partition?.[drag.end];
+          const movable = origin ? targets.points.filter((p) => distance(p, origin) > tolerance) : targets.points;
+          setDrag({ ...drag, point: snapPoint(world, { ...targets, points: movable }, tolerance, LENGTH_STEP_CM).point });
         } else {
           const targets = snapTargetsFor(floor);
           const otherVertices = floor.zones.flatMap((zone) =>
