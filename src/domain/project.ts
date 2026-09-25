@@ -45,6 +45,29 @@ export function duplicateVersion(
   return ok({ ...project, versions: [...project.versions, copy] });
 }
 
+/**
+ * Appends a version that keeps only the exterior of `versionId`: its perimeter and the doors/windows
+ * on perimeter walls (the façade). Partitions, zones, furniture and interior openings start empty.
+ */
+export function addPerimeterOnlyVersion(
+  project: Project,
+  versionId: Id,
+  name: string,
+  now: Date = new Date(),
+): Result<Project> {
+  const source = findVersion(project, versionId);
+  if (!source) return err('VERSION_NOT_FOUND');
+  if (isBlank(name)) return err('INVALID_NAME');
+  const perimeterIds = new Set(source.floor.perimeter.segments.map((segment) => segment.id));
+  const floor: Floor = {
+    ...createEmptyFloor(),
+    perimeter: structuredClone(source.floor.perimeter),
+    openings: structuredClone(source.floor.openings.filter((opening) => perimeterIds.has(opening.wallId))),
+  };
+  const version: Version = { id: createId(), name: name.trim(), createdAt: now.toISOString(), floor };
+  return ok({ ...project, versions: [...project.versions, version] });
+}
+
 /** Appends a new version with an empty floor. */
 export function addEmptyVersion(project: Project, name: string, now: Date = new Date()): Result<Project> {
   if (isBlank(name)) return err('INVALID_NAME');

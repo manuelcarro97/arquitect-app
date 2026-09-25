@@ -5,6 +5,7 @@ import {
   appendSegment,
   createProject,
   addEmptyVersion,
+  addPerimeterOnlyVersion,
   duplicateVersion,
   findVersion,
   removeVersion,
@@ -28,7 +29,7 @@ import {
 
 export type EditorMode = 'structure' | 'layout';
 export type Selection = { kind: 'segment'; id: Id } | null;
-export type NewVersionSource = 'current' | 'empty';
+export type NewVersionSource = 'current' | 'perimeter' | 'empty';
 
 export interface ProjectState {
   project: Project;
@@ -134,7 +135,11 @@ export const useProjectStore = create<ProjectState>()(
         createVersion: (name, source) => {
           const { project, activeVersionId } = get();
           const result =
-            source === 'current' ? duplicateVersion(project, activeVersionId, name) : addEmptyVersion(project, name);
+            source === 'current'
+              ? duplicateVersion(project, activeVersionId, name)
+              : source === 'perimeter'
+                ? addPerimeterOnlyVersion(project, activeVersionId, name)
+                : addEmptyVersion(project, name);
           if (!result.ok) return set({ lastError: result.error });
           const created = result.value.versions[result.value.versions.length - 1];
           set({ project: result.value, activeVersionId: created.id, selection: null, lastError: null });

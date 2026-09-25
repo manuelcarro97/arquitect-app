@@ -38,6 +38,13 @@ function NewVersionForm({ close }: { close: () => void }) {
             <small>Mismo perímetro, tabiques y muebles. Para probar cambios sobre lo que ya tienes.</small>
           </span>
         </label>
+        <label className={`choice ${source === 'perimeter' ? 'is-checked' : ''}`}>
+          <input type="radio" checked={source === 'perimeter'} onChange={() => setSource('perimeter')} />
+          <span>
+            <strong>Solo el perímetro de «{activeVersionName}»</strong>
+            <small>Mismo contorno y ventanas/puertas exteriores; interior vacío para redistribuir.</small>
+          </span>
+        </label>
         <label className={`choice ${source === 'empty' ? 'is-checked' : ''}`}>
           <input type="radio" checked={source === 'empty'} onChange={() => setSource('empty')} />
           <span>

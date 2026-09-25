@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { addOpening, invalidOpeningIds, type OpeningInput } from './openings';
 import { addPartition, invalidPartitionIds, movePartition, removePartition } from './partitions';
 import { createPerimeter, moveSegment, updateSegment } from './perimeter';
-import { createProject, duplicateVersion } from './project';
+import { addPerimeterOnlyVersion, createProject, duplicateVersion } from './project';
 import { unwrap } from './result';
 import { lShapePerimeter, rectanglePerimeter } from './test-fixtures';
 import type { Floor, Perimeter } from './types';
@@ -89,5 +89,25 @@ describe('versions', () => {
     const duplicated = unwrap(duplicateVersion(project, project.versions[0].id, '2 baños'));
     duplicated.versions[1].floor.perimeter.segments[0].length = 999;
     expect(duplicated.versions[0].floor.perimeter.segments[0].length).toBe(400);
+  });
+});
+
+describe('perimeter-only versions', () => {
+  it('keeps the perimeter and façade openings but empties the interior', () => {
+    const project = unwrap(createProject('Casa'));
+    let floor = floorOf(rectanglePerimeter(400, 300));
+    floor = unwrap(addPartition(floor, { x: 200, y: 0 }, { x: 200, y: 300 }));
+    floor = unwrap(addOpening(floor, windowOn(floor)));
+    floor = unwrap(
+      addOpening(floor, { wallId: floor.partitions[0].id, type: 'door', offset: 50, width: 82, height: 210, sillHeight: 0 }),
+    );
+    project.versions[0].floor = floor;
+
+    const result = unwrap(addPerimeterOnlyVersion(project, project.versions[0].id, 'Solo perímetro'));
+    const copy = result.versions[1].floor;
+    expect(copy.perimeter).toEqual(floor.perimeter);
+    expect(copy.partitions).toHaveLength(0);
+    expect(copy.openings).toHaveLength(1);
+    expect(copy.openings[0].wallId).toBe(floor.perimeter.segments[0].id);
   });
 });
