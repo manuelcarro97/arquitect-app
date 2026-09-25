@@ -146,7 +146,7 @@ export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: Dr
   const hint = !enabled
     ? null
     : awaitingStart
-      ? 'Haz clic para colocar la primera esquina.'
+      ? 'Haz clic para colocar la primera esquina · botón derecho o central para mover el plano · rueda para zoom'
       : snapsToStart
         ? 'Clic para cerrar el perímetro.'
         : typed !== ''

@@ -22,6 +22,13 @@ interface WallDrag {
 }
 
 const ZOOM_STEP = 1.1;
+const PAN_BUTTON_MIDDLE = 1;
+const PAN_BUTTON_RIGHT = 2;
+
+interface Pan {
+  start: Point;
+  viewport: Viewport;
+}
 
 function worldPointer(stage: Konva.Stage | null): Point | null {
   return stage?.getRelativePointerPosition() ?? null;
@@ -40,6 +47,7 @@ export function Editor2D() {
   const [chosenTool, setChosenTool] = useState<Tool>('draw');
   const [wallDrag, setWallDrag] = useState<WallDrag | null>(null);
   const [angleStep, setAngleStep] = useState<AngleStep>(90);
+  const [pan, setPan] = useState<Pan | null>(null);
 
   const closed = isPerimeterClosed(perimeter);
   const tool: Tool = closed ? 'select' : chosenTool;
@@ -78,11 +86,30 @@ export function Editor2D() {
     setViewport(zoomAt(effectiveViewport, pointer, factor));
   };
 
-  const handleStageDrag = (event: KonvaEventObject<DragEvent>) => {
-    const stage = event.target;
-    if (stage !== stage.getStage()) return;
-    setViewport({ ...effectiveViewport, x: stage.x(), y: stage.y() });
+  // Panning uses the right or middle button so the left button is only for drawing and selecting.
+  const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
+    if (event.evt.button !== PAN_BUTTON_MIDDLE && event.evt.button !== PAN_BUTTON_RIGHT) return;
+    event.evt.preventDefault();
+    setPan({ start: { x: event.evt.clientX, y: event.evt.clientY }, viewport: effectiveViewport });
   };
+
+  useEffect(() => {
+    if (!pan) return;
+    const onMouseMove = (event: MouseEvent) => {
+      setViewport({
+        ...pan.viewport,
+        x: pan.viewport.x + event.clientX - pan.start.x,
+        y: pan.viewport.y + event.clientY - pan.start.y,
+      });
+    };
+    const onMouseUp = () => setPan(null);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+  }, [pan]);
 
   const handleMouseMove = (event: KonvaEventObject<MouseEvent>) => {
     const world = worldPointer(event.target.getStage());
@@ -114,9 +141,7 @@ export function Editor2D() {
   const handleWallPointerDown = (segmentId: Id, event: KonvaEventObject<MouseEvent>) => {
     if (event.evt.button !== 0) return;
     event.cancelBubble = true;
-    const stage = event.target.getStage();
-    stage?.stopDrag();
-    const world = worldPointer(stage);
+    const world = worldPointer(event.target.getStage());
     select({ kind: 'segment', id: segmentId });
     if (world) setWallDrag({ segmentId, origin: world, offset: 0 });
   };
@@ -138,14 +163,13 @@ export function Editor2D() {
           scaleY={effectiveViewport.scale}
           x={effectiveViewport.x}
           y={effectiveViewport.y}
-          draggable={!wallDrag}
           onWheel={handleWheel}
-          onDragMove={handleStageDrag}
-          onDragEnd={handleStageDrag}
+          onMouseDown={handleMouseDown}
+          onContextMenu={(event) => event.evt.preventDefault()}
           onMouseMove={handleMouseMove}
           onMouseLeave={drawTool.clearPointer}
           onClick={handleStageClick}
-          style={{ cursor: tool === 'draw' ? 'crosshair' : 'default' }}
+          style={{ cursor: pan ? 'grabbing' : tool === 'draw' ? 'crosshair' : 'default' }}
         >
           <Layer>
             <Grid viewport={effectiveViewport} width={width} height={height} />
@@ -195,7 +219,7 @@ export function Editor2D() {
       {!wallDrag && (drawTool.hint || tool === 'select') && (
         <div className="editor2d__hint">
           {drawTool.hint ??
-            'Clic en una pared para seleccionarla · arrástrala para moverla · clic en una cota para editarla · Supr para borrar'}
+            'Clic en una pared para seleccionarla · arrástrala para moverla · clic en una cota para editarla · Supr para borrar · botón derecho o central para mover el plano'}
         </div>
       )}
     </div>
