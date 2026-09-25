@@ -16,7 +16,8 @@ export type DomainError =
   | 'ZONE_NOT_FOUND'
   | 'INVALID_ZONE'
   | 'VERSION_NOT_FOUND'
-  | 'LAST_VERSION';
+  | 'LAST_VERSION'
+  | 'FURNITURE_NOT_FOUND';
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: DomainError };
 

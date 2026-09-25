@@ -5,6 +5,7 @@ import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
 import { PartitionLayer } from '../layout/PartitionLayer';
 import { ZoneLayer } from '../layout/ZoneLayer';
+import { useFurniture } from '../furniture/useFurniture';
 import { useOpenings } from '../openings/useOpenings';
 import { PerimeterLayer } from '../PerimeterLayer';
 import { useDrawTool } from '../useDrawTool';
@@ -74,6 +75,9 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
     onExitTool: exitTool,
   });
 
+  // Furniture is only shown here; it is placed and moved in Distribución mode.
+  const furniture = useFurniture({ floor, scale, active: false, selectable: false });
+
   const selectedId = selection?.kind === 'segment' ? selection.id : null;
 
   const dragHint =
@@ -126,6 +130,7 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
           onZonePointerDown={() => {}}
           onVertexPointerDown={() => {}}
         />
+        {furniture.layer}
         <PartitionLayer
           partitions={floor.partitions}
           scale={scale}

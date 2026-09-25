@@ -6,6 +6,7 @@ import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
 import { FloorMesh } from './FloorMesh';
 import { sceneBounds, SCENE_COLORS, type SceneBounds } from './scene';
+import { FurnitureMeshes } from './FurnitureMeshes';
 import { OpeningMeshes } from './OpeningMeshes';
 import { ViewpointArrow } from './ViewpointArrow';
 import { WallMesh } from "./WallMesh";
@@ -87,6 +88,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
         {polygon && <FloorMesh polygon={polygon} />}
         <ZoneFloors zones={floor.zones} />
         <OpeningMeshes floor={floor} />
+        <FurnitureMeshes furniture={floor.furniture} selectedId={selection?.kind === 'furniture' ? selection.id : null} />
         {elevationWall && <ViewpointArrow wall={elevationWall} side={elevationSide} />}
         {walls.map((wall) => (
           <WallMesh

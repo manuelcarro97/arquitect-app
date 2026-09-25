@@ -11,7 +11,8 @@ import { useProjectStore } from '../store/projectStore';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Editor2D } from './editor2d/Editor2D';
 import { LayoutPanel } from './layout/LayoutPanel';
-import { OpeningDetails } from './openings/OpeningDetails';
+import { FurnitureDetails } from './furniture/FurniturePanels';
+import { OpeningDetails } from "./openings/OpeningDetails";
 import { SegmentTable } from './structure/SegmentTable';
 
 // The 3D engine is heavy: load it in its own chunk so the editor appears first.
@@ -122,6 +123,7 @@ export function Workspace() {
         <aside className="sidebar">
           <ErrorBoundary area="el panel lateral">
             <OpeningDetails />
+            <FurnitureDetails />
             {mode === 'structure' ? <SegmentTable /> : <LayoutPanel />}
           </ErrorBoundary>
         </aside>

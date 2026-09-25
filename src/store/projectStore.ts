@@ -33,6 +33,10 @@ import {
   updateOpening,
   findWall,
   interiorSide,
+  addFurniture,
+  removeFurniture,
+  updateFurniture,
+  type FurnitureInput,
   type DomainError,
   type Floor,
   type Id,
@@ -47,7 +51,7 @@ import {
 } from '../domain';
 
 export type EditorMode = 'structure' | 'layout';
-export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening';
+export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening' | 'furniture';
 export type Selection = { kind: SelectionKind; id: Id } | null;
 export type NewVersionSource = 'current' | 'perimeter' | 'empty';
 
@@ -65,6 +69,8 @@ export interface ProjectState {
   elevationWallId: Id | null;
   /** Face of that wall the elevation is seen from. */
   elevationSide: WallSide;
+  /** Catalog id of the piece being placed on the plan, or null. */
+  placingFurniture: string | null;
 
   newProject: (name: string) => void;
   loadProject: (project: Project, options: { fromFile: boolean }) => void;
@@ -103,6 +109,12 @@ export interface ProjectState {
   openElevation: (wallId: Id) => void;
   closeElevation: () => void;
   flipElevationSide: () => void;
+  addFurniture: (input: FurnitureInput) => boolean;
+  updateFurniture: (furnitureId: Id, changes: Partial<FurnitureInput>) => void;
+  removeFurniture: (furnitureId: Id) => void;
+  duplicateFurniture: (furnitureId: Id) => void;
+  startPlacingFurniture: (catalogId: string) => void;
+  stopPlacingFurniture: () => void;
   /** Deletes whatever is selected (perimeter segment, partition or zone). */
   removeSelection: () => void;
 }
@@ -178,6 +190,7 @@ export const useProjectStore = create<ProjectState>()(
         savedProject: initialProject,
         elevationWallId: null,
         elevationSide: 'A',
+        placingFurniture: null,
 
         newProject: (name) => {
           const project = freshProject(name);
@@ -295,9 +308,34 @@ export const useProjectStore = create<ProjectState>()(
         },
         flipElevationSide: () => set({ elevationSide: get().elevationSide === 'A' ? 'B' : 'A' }),
         closeElevation: () => set({ elevationWallId: null }),
+        addFurniture: (input) => {
+          const added = editFloor((floor) => addFurniture(floor, input));
+          if (added) {
+            const pieces = selectFloor(get()).furniture;
+            set({ selection: { kind: 'furniture', id: pieces[pieces.length - 1].id } });
+          }
+          return added;
+        },
+        updateFurniture: (furnitureId, changes) => {
+          editFloor((floor) => updateFurniture(floor, furnitureId, changes));
+        },
+        removeFurniture: (furnitureId) => {
+          if (editFloor((floor) => ok(removeFurniture(floor, furnitureId)))) set({ selection: null });
+        },
+        duplicateFurniture: (furnitureId) => {
+          const piece = selectFloor(get()).furniture.find((item) => item.id === furnitureId);
+          if (!piece) return;
+          const { id, ...input } = piece;
+          void id;
+          // The copy appears slightly offset so both are visible.
+          get().addFurniture({ ...input, x: input.x + 20, y: input.y + 20 });
+        },
+        startPlacingFurniture: (catalogId) => set({ placingFurniture: catalogId, mode: 'layout' }),
+        stopPlacingFurniture: () => set({ placingFurniture: null }),
         removeSelection: () => {
           const { selection } = get();
           if (!selection) return;
+          if (selection.kind === 'furniture') get().removeFurniture(selection.id);
           if (selection.kind === 'opening') get().removeOpening(selection.id);
           if (selection.kind === 'segment') get().removePerimeterSegment(selection.id);
           if (selection.kind === 'partition') get().removePartition(selection.id);

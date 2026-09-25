@@ -15,6 +15,7 @@ import {
 } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
+import { useFurniture } from '../furniture/useFurniture';
 import { useOpenings } from '../openings/useOpenings';
 import { PerimeterLayer } from '../PerimeterLayer';
 import { snapPoint, snapTargetsFor } from '../pointSnap';
@@ -92,6 +93,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     selectable: active && tool === 'select',
     onExitTool: exitTool,
   });
+  const furniture = useFurniture({ floor: displayed, scale, active, selectable: active && tool === 'select' });
   const invalidIds = new Set(invalidPartitionIds(displayed));
   if (drag && !previewFloor && drag.kind !== 'vertex') invalidIds.add(drag.id);
 
@@ -126,6 +128,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
   };
 
   const chooseTool = (next: LayoutTool) => {
+    furniture.cancelPlacing();
     partitionTool.reset();
     zoneTool.reset();
     setTool(next);
@@ -135,7 +138,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     ? 'El perímetro no está cerrado: ciérralo en modo Estructura para distribuir el interior.'
     : drag && !previewFloor
       ? 'Ahí no: el tabique saldría del perímetro.'
-      : (openings.hint ?? partitionTool.hint ?? zoneTool.hint ?? SELECT_HINT);
+      : (furniture.hint ?? openings.hint ?? partitionTool.hint ?? zoneTool.hint ?? SELECT_HINT);
 
   return {
     tools: [
@@ -191,6 +194,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
             startDrag(event, (world) => ({ kind: 'vertex', zoneId, index, point: world }))
           }
         />
+        {furniture.layer}
         <PerimeterLayer
           perimeter={floor.perimeter}
           scale={scale}
@@ -223,9 +227,10 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
       </>
     ),
     hint,
-    cursor: tool === 'select' ? 'default' : 'crosshair',
+    cursor: tool === 'select' && !furniture.isPlacing ? 'default' : 'crosshair',
     onPointerMove: (world, shiftKey) => {
       if (openings.handlePointerMove(world)) return;
+      if (furniture.handlePointerMove(world, shiftKey)) return;
       if (drag) {
         const tolerance = SNAP_PX / scale;
         if (drag.kind === 'partition') {
@@ -255,12 +260,14 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
       zoneTool.handlePointerMove(world);
     },
     onClick: (_world, onEmpty) => {
+      if (furniture.handleClick()) return;
       if (tool === 'partition') partitionTool.handleClick();
       else if (tool === 'zone') zoneTool.handleClick();
       else if (tool === 'door' || tool === 'window') openings.handleClick();
       else if (onEmpty) select(null);
     },
     onSecondaryClick: () => {
+      if (furniture.cancelPlacing()) return;
       if (tool === 'partition') partitionTool.handleSecondaryClick();
       else if (tool === 'zone') zoneTool.handleSecondaryClick();
       else if (tool !== 'select') setTool('select');

@@ -822,6 +822,53 @@ select:focus {
   color: var(--text-muted);
 }
 
+/* Furniture catalog */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.catalog-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.catalog-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border-color: transparent;
+  background: var(--surface-muted);
+}
+
+.catalog-item__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgb(0 0 0 / 15%);
+}
+
+.catalog-item__size {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Error boundary */
 
 .error-boundary {

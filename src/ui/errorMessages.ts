@@ -19,4 +19,5 @@ export const ERROR_MESSAGES: Record<DomainError, string> = {
   INVALID_ZONE: 'La zona necesita al menos 3 puntos y algo de superficie.',
   VERSION_NOT_FOUND: 'Esa versión ya no existe.',
   LAST_VERSION: 'No se puede borrar la única versión.',
+  FURNITURE_NOT_FOUND: 'Ese mueble ya no existe.',
 };
