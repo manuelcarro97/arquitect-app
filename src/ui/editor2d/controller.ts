@@ -27,6 +27,8 @@ export interface ToolButton {
 export interface EditorController {
   tools: ToolButton[];
   showAngleSnap: boolean;
+  /** Extra controls for the active tool (e.g. door/window sizes). */
+  toolOptions?: ReactNode;
   /** Konva nodes, in world coordinates (cm). */
   layers: ReactNode;
   hint: string | null;

@@ -1,5 +1,5 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   angleBetween,
   direction,
@@ -15,6 +15,7 @@ import {
 } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
+import { useOpenings } from '../openings/useOpenings';
 import { PerimeterLayer } from '../PerimeterLayer';
 import { snapPoint, snapTargetsFor } from '../pointSnap';
 import { LENGTH_STEP_CM } from '../snap';
@@ -23,7 +24,7 @@ import { usePartitionTool } from './usePartitionTool';
 import { useZoneTool } from './useZoneTool';
 import { ZoneLayer } from './ZoneLayer';
 
-type LayoutTool = 'select' | 'partition' | 'zone';
+type LayoutTool = 'select' | 'partition' | 'zone' | 'door' | 'window';
 
 type Drag =
   | { kind: 'partition'; id: Id; origin: Point; offset: number }
@@ -82,6 +83,14 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
 
   const previewFloor = drag ? applyDrag(floor, drag) : floor;
   const displayed = previewFloor ?? floor;
+  const exitTool = useCallback(() => setTool('select'), []);
+  const openings = useOpenings({
+    floor: displayed,
+    scale,
+    placing: active && closed && (tool === 'door' || tool === 'window') ? tool : null,
+    selectable: active && tool === 'select',
+    onExitTool: exitTool,
+  });
   const invalidIds = new Set(invalidPartitionIds(displayed));
   if (drag && !previewFloor && drag.kind !== 'vertex') invalidIds.add(drag.id);
 
@@ -125,7 +134,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     ? 'El perímetro no está cerrado: ciérralo en modo Estructura para distribuir el interior.'
     : drag && !previewFloor
       ? 'Ahí no: el tabique saldría del perímetro.'
-      : (partitionTool.hint ?? zoneTool.hint ?? SELECT_HINT);
+      : (openings.hint ?? partitionTool.hint ?? zoneTool.hint ?? SELECT_HINT);
 
   return {
     tools: [
@@ -146,8 +155,25 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
         disabled: !closed,
         onClick: () => chooseTool('zone'),
       },
+      {
+        id: 'door',
+        label: '🚪 Puerta',
+        title: 'Colocar puertas en paredes y tabiques',
+        active: tool === 'door',
+        disabled: !closed,
+        onClick: () => chooseTool('door'),
+      },
+      {
+        id: 'window',
+        label: '🪟 Ventana',
+        title: 'Colocar ventanas en paredes y tabiques',
+        active: tool === 'window',
+        disabled: !closed,
+        onClick: () => chooseTool('window'),
+      },
     ],
     showAngleSnap: tool === 'partition',
+    toolOptions: openings.toolOptions,
     layers: (
       <>
         <ZoneLayer
@@ -188,6 +214,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
             if (partition) startDrag(event, () => ({ kind: 'endpoint', id: partitionId, end, point: partition[end] }));
           }}
         />
+        {openings.layer}
         {partitionTool.overlay}
         {zoneTool.overlay}
       </>
@@ -195,6 +222,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     hint,
     cursor: tool === 'select' ? 'default' : 'crosshair',
     onPointerMove: (world, shiftKey) => {
+      if (openings.handlePointerMove(world)) return;
       if (drag) {
         const tolerance = SNAP_PX / scale;
         if (drag.kind === 'partition') {
@@ -226,11 +254,13 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     onClick: (_world, onEmpty) => {
       if (tool === 'partition') partitionTool.handleClick();
       else if (tool === 'zone') zoneTool.handleClick();
+      else if (tool === 'door' || tool === 'window') openings.handleClick();
       else if (onEmpty) select(null);
     },
     onSecondaryClick: () => {
       if (tool === 'partition') partitionTool.handleSecondaryClick();
       else if (tool === 'zone') zoneTool.handleSecondaryClick();
+      else if (tool !== 'select') setTool('select');
       else select(null);
     },
   };

@@ -6,7 +6,8 @@ import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
 import { FloorMesh } from './FloorMesh';
 import { sceneBounds, SCENE_COLORS, type SceneBounds } from './scene';
-import { WallMesh } from './WallMesh';
+import { OpeningMeshes } from './OpeningMeshes';
+import { WallMesh } from "./WallMesh";
 import { ZoneFloors } from './ZoneFloors';
 
 type Controls = ComponentRef<typeof OrbitControls>;
@@ -81,6 +82,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
 
         {polygon && <FloorMesh polygon={polygon} />}
         <ZoneFloors zones={floor.zones} />
+        <OpeningMeshes floor={floor} />
         {walls.map((wall) => (
           <WallMesh
             key={wall.id}

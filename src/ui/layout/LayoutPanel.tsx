@@ -33,6 +33,7 @@ const ROOM_NAMES = [
 function PartitionDetails({ partition, invalid }: { partition: Partition; invalid: boolean }) {
   const setPartitionLength = useProjectStore((state) => state.setPartitionLength);
   const removePartition = useProjectStore((state) => state.removePartition);
+  const openElevation = useProjectStore((state) => state.openElevation);
   const length = distance(partition.a, partition.b);
 
   return (
@@ -50,9 +51,12 @@ function PartitionDetails({ partition, invalid }: { partition: Partition; invali
         />
       </label>
       <div className="details__meta">Grosor {partition.thickness} cm · altura {partition.height} cm</div>
-      <button className="danger-link" onClick={() => removePartition(partition.id)}>
-        Borrar tabique
-      </button>
+      <div className="button-row">
+        <button onClick={() => openElevation(partition.id)}>Ver alzado (puertas)</button>
+        <button className="danger-link" onClick={() => removePartition(partition.id)}>
+          Borrar tabique
+        </button>
+      </div>
     </section>
   );
 }

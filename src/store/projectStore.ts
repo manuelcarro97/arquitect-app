@@ -28,6 +28,9 @@ import {
   setPartitionEndpoints,
   setPartitionLength,
   updateZone,
+  addOpening,
+  removeOpening,
+  updateOpening,
   type DomainError,
   type Floor,
   type Id,
@@ -36,11 +39,12 @@ import {
   type Project,
   type Result,
   type SegmentInput,
+  type OpeningInput,
   type ZoneInput,
 } from '../domain';
 
 export type EditorMode = 'structure' | 'layout';
-export type SelectionKind = 'segment' | 'partition' | 'zone';
+export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening';
 export type Selection = { kind: SelectionKind; id: Id } | null;
 export type NewVersionSource = 'current' | 'perimeter' | 'empty';
 
@@ -54,6 +58,8 @@ export interface ProjectState {
   lastError: DomainError | null;
   /** Project as last written to (or read from) a file. Differs from `project` when there are unsaved changes. */
   savedProject: Project | null;
+  /** Wall shown in the elevation (front) view, or null when it is closed. */
+  elevationWallId: Id | null;
 
   newProject: (name: string) => void;
   loadProject: (project: Project, options: { fromFile: boolean }) => void;
@@ -86,6 +92,11 @@ export interface ProjectState {
   addZone: (input: ZoneInput) => boolean;
   updateZone: (zoneId: Id, changes: Partial<ZoneInput>) => void;
   removeZone: (zoneId: Id) => void;
+  addOpening: (input: OpeningInput) => boolean;
+  updateOpening: (openingId: Id, changes: Partial<OpeningInput>) => void;
+  removeOpening: (openingId: Id) => void;
+  openElevation: (wallId: Id) => void;
+  closeElevation: () => void;
   /** Deletes whatever is selected (perimeter segment, partition or zone). */
   removeSelection: () => void;
 }
@@ -142,6 +153,7 @@ export const useProjectStore = create<ProjectState>()(
         set({
           project,
           savedProject,
+          elevationWallId: null,
           activeVersionId: project.versions[0].id,
           selection: null,
           lengthEditRequest: null,
@@ -158,6 +170,7 @@ export const useProjectStore = create<ProjectState>()(
         lengthEditRequest: null,
         lastError: null,
         savedProject: initialProject,
+        elevationWallId: null,
 
         newProject: (name) => {
           const project = freshProject(name);
@@ -169,7 +182,7 @@ export const useProjectStore = create<ProjectState>()(
           if (name.trim() === '') return set({ lastError: 'INVALID_NAME' });
           set({ project: { ...get().project, name: name.trim() } });
         },
-        setActiveVersion: (versionId) => set({ activeVersionId: versionId, selection: null }),
+        setActiveVersion: (versionId) => set({ activeVersionId: versionId, selection: null, elevationWallId: null }),
         createVersion: (name, source) => {
           const { project, activeVersionId } = get();
           const result =
@@ -254,9 +267,26 @@ export const useProjectStore = create<ProjectState>()(
         removeZone: (zoneId) => {
           if (editFloor((floor) => ok(removeZone(floor, zoneId)))) set({ selection: null });
         },
+        addOpening: (input) => {
+          const added = editFloor((floor) => addOpening(floor, input));
+          if (added) {
+            const openings = selectFloor(get()).openings;
+            set({ selection: { kind: 'opening', id: openings[openings.length - 1].id } });
+          }
+          return added;
+        },
+        updateOpening: (openingId, changes) => {
+          editFloor((floor) => updateOpening(floor, openingId, changes));
+        },
+        removeOpening: (openingId) => {
+          if (editFloor((floor) => ok(removeOpening(floor, openingId)))) set({ selection: null });
+        },
+        openElevation: (wallId) => set({ elevationWallId: wallId }),
+        closeElevation: () => set({ elevationWallId: null }),
         removeSelection: () => {
           const { selection } = get();
           if (!selection) return;
+          if (selection.kind === 'opening') get().removeOpening(selection.id);
           if (selection.kind === 'segment') get().removePerimeterSegment(selection.id);
           if (selection.kind === 'partition') get().removePartition(selection.id);
           if (selection.kind === 'zone') get().removeZone(selection.id);

@@ -8,6 +8,7 @@ import { useElementSize } from '../hooks/useElementSize';
 import { CANVAS_COLORS } from './colors';
 import { Grid } from './Grid';
 import { useLayoutController } from './layout/useLayoutController';
+import { ElevationView } from '../openings/ElevationView';
 import { ANGLE_STEPS, type AngleStep } from './snap';
 import { useStructureController } from './structure/useStructureController';
 import { fitPoints, zoomAt, type Viewport } from './viewport';
@@ -33,6 +34,7 @@ const CLICK_MAX_TRAVEL_PX = 4;
 export function Editor2D() {
   const floor = useActiveFloor();
   const mode = useProjectStore((state) => state.mode);
+  const elevationOpen = useProjectStore((state) => state.elevationWallId !== null);
 
   const { ref, width, height } = useElementSize<HTMLDivElement>();
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -141,6 +143,7 @@ export function Editor2D() {
         <button onClick={() => setViewport(fitPoints(perimeterCorners(floor.perimeter), width, height))}>
           ⤢ Encuadrar
         </button>
+        {controller.toolOptions}
         {controller.showAngleSnap && (
           <div className="segmented" role="group" aria-label="Ajuste de ángulo" title="Ajuste de ángulo al dibujar (Shift = libre)">
             {ANGLE_STEPS.map((step) => (
@@ -153,6 +156,7 @@ export function Editor2D() {
       </div>
 
       {controller.hint && <div className="editor2d__hint">{controller.hint}</div>}
+      {elevationOpen && <ElevationView />}
     </div>
   );
 }

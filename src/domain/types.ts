@@ -34,6 +34,9 @@ export interface Partition extends WallProps {
 }
 
 export type OpeningType = 'door' | 'window';
+export type OpeningHinge = 'start' | 'end';
+/** Faces of a wall: "A" on the side of its normal (-dir.y, dir.x), "B" on the other. */
+export type WallSide = 'A' | 'B';
 
 export interface Opening {
   id: Id;
@@ -44,6 +47,10 @@ export interface Opening {
   width: number;
   height: number;
   sillHeight: number;
+  /** Doors: jamb where the hinges are, at the wall-start or wall-end side of the opening. Default "start". */
+  hinge?: OpeningHinge;
+  /** Doors: face the leaf swings into. "A" is the side of the wall normal (-dir.y, dir.x). Default "A". */
+  swingSide?: WallSide;
 }
 
 export interface Furniture {

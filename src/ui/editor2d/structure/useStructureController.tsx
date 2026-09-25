@@ -1,14 +1,15 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { direction, invalidPartitionIds, isPerimeterClosed, moveSegment, type Id, type Point } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
 import { PartitionLayer } from '../layout/PartitionLayer';
 import { ZoneLayer } from '../layout/ZoneLayer';
+import { useOpenings } from '../openings/useOpenings';
 import { PerimeterLayer } from '../PerimeterLayer';
 import { useDrawTool } from '../useDrawTool';
 
-type StructureTool = 'draw' | 'select';
+type StructureTool = 'draw' | 'select' | 'door' | 'window';
 
 interface WallDrag {
   segmentId: Id;
@@ -30,7 +31,8 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
   const [chosenTool, setChosenTool] = useState<StructureTool>('draw');
   const [wallDrag, setWallDrag] = useState<WallDrag | null>(null);
   const closed = isPerimeterClosed(perimeter);
-  const tool: StructureTool = closed ? 'select' : chosenTool;
+  const tool: StructureTool = closed && chosenTool === 'draw' ? 'select' : chosenTool;
+  const exitTool = useCallback(() => setChosenTool('select'), []);
 
   const drawTool = useDrawTool({
     enabled: active && tool === 'draw',
@@ -63,6 +65,14 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
     if (world) setWallDrag({ segmentId, origin: world, offset: 0 });
   };
 
+  const openings = useOpenings({
+    floor: { ...floor, perimeter: displayedPerimeter },
+    scale,
+    placing: active && (tool === 'door' || tool === 'window') ? tool : null,
+    selectable: active && tool === 'select',
+    onExitTool: exitTool,
+  });
+
   const selectedId = selection?.kind === 'segment' ? selection.id : null;
 
   const dragHint =
@@ -87,8 +97,23 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
         active: tool === 'select',
         onClick: () => setChosenTool('select'),
       },
+      {
+        id: 'door',
+        label: '🚪 Puerta',
+        title: 'Colocar puertas en las paredes',
+        active: tool === 'door',
+        onClick: () => setChosenTool('door'),
+      },
+      {
+        id: 'window',
+        label: '🪟 Ventana',
+        title: 'Colocar ventanas en las paredes',
+        active: tool === 'window',
+        onClick: () => setChosenTool('window'),
+      },
     ],
     showAngleSnap: tool === 'draw',
+    toolOptions: openings.toolOptions,
     layers: (
       <>
         {/* Interior shown for reference only; it is edited in Distribución mode. */}
@@ -120,12 +145,14 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
             requestLengthEdit(segmentId);
           }}
         />
+        {openings.layer}
         {drawTool.overlay}
       </>
     ),
-    hint: dragHint ?? drawTool.hint ?? SELECT_HINT,
-    cursor: tool === 'draw' ? 'crosshair' : 'default',
+    hint: dragHint ?? openings.hint ?? drawTool.hint ?? SELECT_HINT,
+    cursor: tool === 'select' ? 'default' : 'crosshair',
     onPointerMove: (world, shiftKey) => {
+      if (openings.handlePointerMove(world)) return;
       if (wallDrag) {
         const segment = perimeter.segments.find((s) => s.id === wallDrag.segmentId);
         if (!segment) return;
@@ -139,10 +166,11 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
     },
     onClick: (world, onEmpty) => {
       if (tool === 'draw') drawTool.handleClick(world);
+      else if (tool === 'door' || tool === 'window') openings.handleClick();
       else if (onEmpty) select(null);
     },
     onSecondaryClick: () => {
-      if (tool === 'draw') setChosenTool('select');
+      if (tool !== 'select') setChosenTool('select');
       else select(null);
     },
   };

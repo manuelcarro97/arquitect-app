@@ -131,6 +131,8 @@ function AddSegmentForm({ disabled }: { disabled: boolean }) {
 export function SegmentTable() {
   const perimeter = useActiveFloor().perimeter;
   const closePerimeter = useProjectStore((state) => state.closePerimeter);
+  const selectedSegmentId = useProjectStore((state) => (state.selection?.kind === 'segment' ? state.selection.id : null));
+  const openElevation = useProjectStore((state) => state.openElevation);
   const closed = isPerimeterClosed(perimeter);
   const gap = closureGap(perimeter);
   const polygon = perimeterPolygon(perimeter);
@@ -139,6 +141,12 @@ export function SegmentTable() {
   return (
     <section className="panel">
       <h2 className="panel__title">Perímetro</h2>
+
+      {selectedSegmentId && perimeter.segments.some((s) => s.id === selectedSegmentId) && (
+        <button onClick={() => openElevation(selectedSegmentId)} title="Ver la pared seleccionada de frente para colocar puertas y ventanas">
+          Ver alzado de la pared seleccionada
+        </button>
+      )}
 
       <div className={`status ${closed ? 'status--ok' : 'status--warn'}`}>
         {closed && area !== null ? (
