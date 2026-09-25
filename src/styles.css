@@ -366,18 +366,49 @@ select:focus {
   font-size: 12px;
 }
 
-.viewer3d-placeholder {
-  display: grid;
-  place-content: center;
-  text-align: center;
-  color: var(--text-muted);
-  background: var(--surface-muted);
+.viewer3d {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   border-right: 1px solid var(--border);
+  background: #eceae4;
 }
 
-.viewer3d-placeholder p {
-  margin: 0;
-  font-weight: 600;
+.viewer3d--loading {
+  display: grid;
+  place-content: center;
+  color: var(--text-muted);
+}
+
+.viewer3d__toolbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.viewer3d__toolbar button {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 8%);
+}
+
+.viewer3d__empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.viewer3d__hint {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 .sidebar {
