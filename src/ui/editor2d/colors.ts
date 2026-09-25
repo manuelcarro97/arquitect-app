@@ -12,4 +12,5 @@ export const CANVAS_COLORS = {
   labelSelected: '#d9622b',
   gap: '#c8372d',
   preview: '#2f6fb5',
+  guide: '#c2379b',
 } as const;

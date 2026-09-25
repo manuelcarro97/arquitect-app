@@ -4,9 +4,10 @@ import { distance, perimeterCorners, type Perimeter, type Point } from '../../do
 import { useProjectStore } from '../../store/projectStore';
 import { formatCm, formatDegrees } from '../format';
 import { CANVAS_COLORS } from './colors';
-import { computeDrawPreview, LENGTH_STEP_CM, snapPointToGrid, type AngleStep } from './snap';
+import { alignWithCorners, computeDrawPreview, LENGTH_STEP_CM, snapPointToGrid, type AngleStep } from './snap';
 
 const CLOSE_SNAP_PX = 14;
+const ALIGN_SNAP_PX = 8;
 const LABEL_FONT_PX = 13;
 
 interface DrawToolOptions {
@@ -44,12 +45,16 @@ export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: Dr
     perimeter.segments.length >= 2 &&
     pointer !== null &&
     distance(pointer, perimeter.start) <= CLOSE_SNAP_PX / scale;
-  const preview =
+  const validTypedLength = typedLength !== null && Number.isFinite(typedLength) ? typedLength : null;
+  const rawPreview =
     enabled && !awaitingStart && pointer && !snapsToStart
-      ? computeDrawPreview(last, pointer, {
-          angleStep: freeAngle ? 0 : angleStep,
-          typedLength: Number.isFinite(typedLength) ? typedLength : null })
+      ? computeDrawPreview(last, pointer, { angleStep: freeAngle ? 0 : angleStep, typedLength: validTypedLength })
       : null;
+  // Guides against existing corners; a typed length always wins over the alignment snap.
+  const alignment = rawPreview
+    ? alignWithCorners(rawPreview, corners, { tolerance: ALIGN_SNAP_PX / scale, snap: validTypedLength === null })
+    : null;
+  const preview = alignment?.preview ?? null;
 
   const commit = () => {
     if (snapsToStart) {
@@ -122,6 +127,17 @@ export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: Dr
           <Circle x={perimeter.start.x} y={perimeter.start.y} radius={9 / scale} stroke={CANVAS_COLORS.start} strokeWidth={2 / scale} />
         </>
       )}
+      {alignment?.guides.map((guide, i) => (
+        <Group key={i}>
+          <Line
+            points={[guide.from.x, guide.from.y, guide.to.x, guide.to.y]}
+            stroke={CANVAS_COLORS.guide}
+            strokeWidth={1 / scale}
+            dash={[4 / scale, 4 / scale]}
+          />
+          <Circle x={guide.from.x} y={guide.from.y} radius={5 / scale} stroke={CANVAS_COLORS.guide} strokeWidth={1.5 / scale} />
+        </Group>
+      ))}
       {preview && (
         <>
           <Line

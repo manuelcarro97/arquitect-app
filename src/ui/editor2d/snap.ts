@@ -40,3 +40,53 @@ export function computeDrawPreview(
   if (!(length > 0)) return null;
   return { from, to: pointFromPolar(from, length, angle), length, angle };
 }
+
+export interface AlignmentGuide {
+  from: Point;
+  to: Point;
+}
+
+/** Guides closer than this (in cm) are considered exact alignments and drawn. */
+const ALIGNED_CM = 0.5;
+/** Directions almost perpendicular to an axis cannot reach that axis' alignment. */
+const MIN_AXIS_COMPONENT = 0.05;
+
+/**
+ * Shows dashed guides when the preview end lines up horizontally or vertically with an existing corner.
+ * With `snap`, stretches the segment (keeping its angle) to the nearest alignment within `tolerance` cm.
+ */
+export function alignWithCorners(
+  preview: DrawPreview,
+  corners: Point[],
+  options: { tolerance: number; snap: boolean },
+): { preview: DrawPreview; guides: AlignmentGuide[] } {
+  const others = corners.filter((corner) => distance(corner, preview.from) > ALIGNED_CM);
+  let aligned = preview;
+
+  if (options.snap) {
+    const unit = direction(preview.angle);
+    let best: { length: number; delta: number } | null = null;
+    for (const corner of others) {
+      const candidates = [
+        { component: unit.x, target: corner.x - preview.from.x, delta: Math.abs(preview.to.x - corner.x) },
+        { component: unit.y, target: corner.y - preview.from.y, delta: Math.abs(preview.to.y - corner.y) },
+      ];
+      for (const { component, target, delta } of candidates) {
+        if (Math.abs(component) < MIN_AXIS_COMPONENT || delta > options.tolerance) continue;
+        const length = target / component;
+        if (length > 0 && (!best || delta < best.delta)) best = { length, delta };
+      }
+    }
+    if (best) {
+      aligned = { ...preview, length: best.length, to: pointFromPolar(preview.from, best.length, preview.angle) };
+    }
+  }
+
+  const guides: AlignmentGuide[] = [];
+  for (const corner of others) {
+    if (Math.abs(aligned.to.x - corner.x) < ALIGNED_CM || Math.abs(aligned.to.y - corner.y) < ALIGNED_CM) {
+      guides.push({ from: corner, to: aligned.to });
+    }
+  }
+  return { preview: aligned, guides };
+}
