@@ -42,7 +42,7 @@ function CameraFit({ bounds, controls, fitRequest }: { bounds: SceneBounds | nul
   return null;
 }
 
-export default function Viewer3D() {
+export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const floor = useActiveFloor();
   const selection = useProjectStore((state) => state.selection);
   const [controls, setControls] = useState<Controls | null>(null);
@@ -58,7 +58,7 @@ export default function Viewer3D() {
 
   return (
     <div className="viewer3d">
-      <Canvas shadows="percentage" camera={{ fov: 45, near: 0.1, far: 1000, position: [8, 10, 12] }}>
+      <Canvas shadows="percentage" camera={{ fov: 45, near: 0.1, far: 300, position: [8, 10, 12] }}>
         <color attach="background" args={[SCENE_COLORS.background]} />
         <hemisphereLight args={['#ffffff', '#b9b3a8', 1.1]} />
         <directionalLight
@@ -73,7 +73,7 @@ export default function Viewer3D() {
           shadow-bias={-0.0005}
         />
 
-        <mesh rotation-x={-Math.PI / 2} position={[lightTarget[0], 0, lightTarget[2]]} receiveShadow>
+        <mesh rotation-x={-Math.PI / 2} position={[lightTarget[0], -0.01, lightTarget[2]]} receiveShadow>
           <planeGeometry args={[200, 200]} />
           <meshStandardMaterial color={SCENE_COLORS.ground} roughness={1} />
         </mesh>
@@ -96,6 +96,9 @@ export default function Viewer3D() {
       <div className="viewer3d__toolbar">
         <button onClick={() => setFitRequest((n) => n + 1)} title="Volver a centrar la vista">
           ⤢ Encuadrar
+        </button>
+        <button onClick={onHide} title="Ocultar la vista 3D (se recupera desde la pestaña de la derecha)">
+          Ocultar 3D
         </button>
       </div>
       {walls.length === 0 && <div className="viewer3d__empty">Dibuja el perímetro en el plano para verlo en 3D</div>}

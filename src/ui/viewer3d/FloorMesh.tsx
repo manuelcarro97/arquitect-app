@@ -21,7 +21,8 @@ export function FloorMesh({ polygon }: { polygon: Point[] }) {
   return (
     <mesh rotation-x={-Math.PI / 2} position-y={0.001} receiveShadow>
       <shapeGeometry args={[shape]} />
-      <meshStandardMaterial color={SCENE_COLORS.floor} roughness={0.8} />
+      {/* Polygon offset keeps the floor drawn in front of the ground plane (avoids flickering). */}
+      <meshStandardMaterial color={SCENE_COLORS.floor} roughness={0.8} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
     </mesh>
   );
 }
