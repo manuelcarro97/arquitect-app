@@ -4,6 +4,7 @@ import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
 import { NumberCell } from '../components/NumberCell';
 import { CATALOG, CATALOG_CATEGORIES, catalogItem, type CatalogCategory } from './catalog';
+import { MODEL_CATALOG } from './modelCatalog';
 
 function Measure({ label, value, onCommit }: { label: string; value: number; onCommit: (value: number) => void }) {
   return (
@@ -34,18 +35,29 @@ export function FurnitureDetails() {
     <section className="panel panel--details">
       <h2 className="panel__title">🪑 {info.name}</h2>
       {outside && <p className="status status--warn">Se sale del piso: muévelo hacia dentro.</p>}
-      <div className="field-grid">
-        <Measure label="Ancho (cm)" value={piece.width} onCommit={(width) => update({ width })} />
-        <Measure label="Fondo (cm)" value={piece.depth} onCommit={(depth) => update({ depth })} />
-        <Measure label="Alto (cm)" value={piece.height} onCommit={(height) => update({ height })} />
-        <Measure label="Giro (°)" value={piece.rotation} onCommit={(rotation) => update({ rotation })} />
-      </div>
+      {info.model ? (
+        <>
+          <div className="details__meta">
+            Modelo 3D · {piece.width} × {piece.depth} × {piece.height} cm (medidas fijas del modelo)
+          </div>
+          <div className="field-grid">
+            <Measure label="Giro (°)" value={piece.rotation} onCommit={(rotation) => update({ rotation })} />
+          </div>
+        </>
+      ) : (
+        <div className="field-grid">
+          <Measure label="Ancho (cm)" value={piece.width} onCommit={(width) => update({ width })} />
+          <Measure label="Fondo (cm)" value={piece.depth} onCommit={(depth) => update({ depth })} />
+          <Measure label="Alto (cm)" value={piece.height} onCommit={(height) => update({ height })} />
+          <Measure label="Giro (°)" value={piece.rotation} onCommit={(rotation) => update({ rotation })} />
+        </div>
+      )}
       <div className="button-row">
         <button onClick={() => update({ rotation: piece.rotation + 90 })} title="Girar 90° (tecla R)">
           ↻ Girar 90°
         </button>
         <button onClick={() => duplicateFurniture(piece.id)}>Duplicar</button>
-        {resized && (
+        {resized && !info.model && (
           <button onClick={() => update({ width: info.width, depth: info.depth, height: info.height })}>Medidas originales</button>
         )}
         <button className="danger-link" onClick={() => removeFurniture(piece.id)}>
@@ -63,10 +75,25 @@ export function FurnitureCatalog() {
   const startPlacingFurniture = useProjectStore((state) => state.startPlacingFurniture);
   const stopPlacingFurniture = useProjectStore((state) => state.stopPlacingFurniture);
   const [category, setCategory] = useState<CatalogCategory>('Salón');
+  const [kind, setKind] = useState<'boxes' | 'models'>('boxes');
+  const items = (kind === 'boxes' ? CATALOG : MODEL_CATALOG).filter((item) => item.category === category);
 
   return (
     <section className="details">
       <h3 className="details__title">Muebles</h3>
+      <div className="segmented segmented--full" role="group" aria-label="Tipo de mueble">
+        <button className={kind === 'boxes' ? 'is-active' : ''} onClick={() => setKind('boxes')} title="Cajas con medidas editables">
+          Editables
+        </button>
+        <button className={kind === 'models' ? 'is-active' : ''} onClick={() => setKind('models')} title="Modelos realistas, medidas fijas">
+          Modelos 3D
+        </button>
+      </div>
+      <p className="panel__help">
+        {kind === 'boxes'
+          ? 'Cajas simples: puedes cambiar ancho, fondo y alto para comprobar si algo cabe.'
+          : 'Modelos realistas con medidas fijas, para hacerte una idea de cómo queda.'}
+      </p>
       <div className="chip-row" role="tablist" aria-label="Categorías de muebles">
         {CATALOG_CATEGORIES.map((name) => (
           <button
@@ -81,7 +108,8 @@ export function FurnitureCatalog() {
         ))}
       </div>
       <ul className="catalog-list">
-        {CATALOG.filter((item) => item.category === category).map((item) => (
+        {items.length === 0 && <li className="panel__help">No hay modelos de esta categoría.</li>}
+        {items.map((item) => (
           <li key={item.id}>
             <button
               className={`catalog-item ${placing?.catalogId === item.id ? 'is-active' : ''}`}

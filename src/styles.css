@@ -824,6 +824,14 @@ select:focus {
 
 /* Furniture catalog */
 
+.segmented--full {
+  display: flex;
+}
+
+.segmented--full button {
+  flex: 1;
+}
+
 .chip-row {
   display: flex;
   flex-wrap: wrap;

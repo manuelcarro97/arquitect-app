@@ -1,3 +1,5 @@
+import { MODEL_CATALOG } from './modelCatalog';
+
 /** A piece of furniture that can be placed, with typical Spanish sizes in cm. */
 export interface CatalogItem {
   id: string;
@@ -6,8 +8,10 @@ export interface CatalogItem {
   width: number;
   depth: number;
   height: number;
-  /** Colour of its box in 2D and 3D until real models are added. */
+  /** Colour of its box in 2D and 3D (for models, only the plan colour). */
   color: string;
+  /** Realistic 3D model with a fixed size: file name in public/models and footprint centre in model units. */
+  model?: { file: string; center: [number, number, number] };
 }
 
 export type CatalogCategory = 'Salón' | 'Comedor' | 'Dormitorio' | 'Cocina' | 'Baño' | 'Otros';
@@ -65,7 +69,7 @@ export const CATALOG: CatalogItem[] = [
 const FALLBACK: CatalogItem = { id: 'custom', name: 'Mueble', category: 'Otros', width: 60, depth: 60, height: 80, color: '#c8c3b8' };
 
 export function catalogItem(id: string): CatalogItem {
-  return CATALOG.find((item) => item.id === id) ?? FALLBACK;
+  return CATALOG.find((item) => item.id === id) ?? MODEL_CATALOG.find((item) => item.id === id) ?? FALLBACK;
 }
 
 export const CUSTOM_CATALOG_ID = 'custom';
