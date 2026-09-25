@@ -37,6 +37,8 @@ export const SCENE_COLORS = {
   background: '#eceae4',
   wall: '#f4f1ea',
   wallSelected: '#e8a27f',
+  wallElevation: '#8fbde0',
+  viewpoint: '#2f6fb5',
   wallEdge: '#8d877c',
   floor: '#d8c7a8',
   ground: '#e2dfd7',

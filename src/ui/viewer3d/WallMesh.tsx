@@ -9,13 +9,15 @@ interface WallMeshProps {
   angle: number;
   openings: Opening[];
   selected: boolean;
+  /** Wall currently shown in the elevation view. */
+  highlighted?: boolean;
 }
 
-export function WallMesh({ wall, angle, openings, selected }: WallMeshProps) {
+export function WallMesh({ wall, angle, openings, selected, highlighted = false }: WallMeshProps) {
   const unit = direction(angle);
   // Perimeter walls are lengthened by half their thickness so the corners close.
   const extension = wall.kind === 'perimeter' ? wall.thickness / 2 : 0;
-  const color = selected ? SCENE_COLORS.wallSelected : SCENE_COLORS.wall;
+  const color = highlighted ? SCENE_COLORS.wallElevation : selected ? SCENE_COLORS.wallSelected : SCENE_COLORS.wall;
   const openElevation = useProjectStore((state) => state.openElevation);
 
   return (

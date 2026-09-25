@@ -793,6 +793,27 @@ select:focus {
   fill: var(--accent);
 }
 
+.elevation__junction {
+  fill: #d9d4c8;
+  stroke: #8d877c;
+  stroke-width: 1;
+}
+
+.elevation__junction--behind {
+  fill: none;
+  stroke-dasharray: 5 4;
+}
+
+.elevation__minimap {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
+}
+
 .elevation__hint {
   position: absolute;
   left: 12px;

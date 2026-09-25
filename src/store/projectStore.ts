@@ -31,6 +31,8 @@ import {
   addOpening,
   removeOpening,
   updateOpening,
+  findWall,
+  interiorSide,
   type DomainError,
   type Floor,
   type Id,
@@ -40,6 +42,7 @@ import {
   type Result,
   type SegmentInput,
   type OpeningInput,
+  type WallSide,
   type ZoneInput,
 } from '../domain';
 
@@ -60,6 +63,8 @@ export interface ProjectState {
   savedProject: Project | null;
   /** Wall shown in the elevation (front) view, or null when it is closed. */
   elevationWallId: Id | null;
+  /** Face of that wall the elevation is seen from. */
+  elevationSide: WallSide;
 
   newProject: (name: string) => void;
   loadProject: (project: Project, options: { fromFile: boolean }) => void;
@@ -97,6 +102,7 @@ export interface ProjectState {
   removeOpening: (openingId: Id) => void;
   openElevation: (wallId: Id) => void;
   closeElevation: () => void;
+  flipElevationSide: () => void;
   /** Deletes whatever is selected (perimeter segment, partition or zone). */
   removeSelection: () => void;
 }
@@ -171,6 +177,7 @@ export const useProjectStore = create<ProjectState>()(
         lastError: null,
         savedProject: initialProject,
         elevationWallId: null,
+        elevationSide: 'A',
 
         newProject: (name) => {
           const project = freshProject(name);
@@ -281,7 +288,12 @@ export const useProjectStore = create<ProjectState>()(
         removeOpening: (openingId) => {
           if (editFloor((floor) => ok(removeOpening(floor, openingId)))) set({ selection: null });
         },
-        openElevation: (wallId) => set({ elevationWallId: wallId }),
+        openElevation: (wallId) => {
+          // Exterior walls open seen from inside the flat, where windows are placed.
+          const wall = findWall(selectFloor(get()), wallId);
+          set({ elevationWallId: wallId, elevationSide: wall ? interiorSide(selectFloor(get()), wall) : 'A' });
+        },
+        flipElevationSide: () => set({ elevationSide: get().elevationSide === 'A' ? 'B' : 'A' }),
         closeElevation: () => set({ elevationWallId: null }),
         removeSelection: () => {
           const { selection } = get();

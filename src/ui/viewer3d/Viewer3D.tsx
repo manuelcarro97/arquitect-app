@@ -7,6 +7,7 @@ import { useActiveFloor } from '../../store/selectors';
 import { FloorMesh } from './FloorMesh';
 import { sceneBounds, SCENE_COLORS, type SceneBounds } from './scene';
 import { OpeningMeshes } from './OpeningMeshes';
+import { ViewpointArrow } from './ViewpointArrow';
 import { WallMesh } from "./WallMesh";
 import { ZoneFloors } from './ZoneFloors';
 
@@ -47,10 +48,13 @@ function CameraFit({ bounds, controls, fitRequest }: { bounds: SceneBounds | nul
 export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const floor = useActiveFloor();
   const selection = useProjectStore((state) => state.selection);
+  const elevationWallId = useProjectStore((state) => state.elevationWallId);
+  const elevationSide = useProjectStore((state) => state.elevationSide);
   const [controls, setControls] = useState<Controls | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
 
   const walls = getWalls(floor);
+  const elevationWall = walls.find((wall) => wall.id === elevationWallId);
   const angles = wallAngles(floor);
   const polygon = useMemo(() => perimeterPolygon(floor.perimeter), [floor.perimeter]);
   const bounds = sceneBounds(perimeterCorners(floor.perimeter));
@@ -83,6 +87,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
         {polygon && <FloorMesh polygon={polygon} />}
         <ZoneFloors zones={floor.zones} />
         <OpeningMeshes floor={floor} />
+        {elevationWall && <ViewpointArrow wall={elevationWall} side={elevationSide} />}
         {walls.map((wall) => (
           <WallMesh
             key={wall.id}
@@ -90,6 +95,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
             angle={angles.get(wall.id) ?? 0}
             openings={floor.openings}
             selected={wall.id === selectedId}
+            highlighted={wall.id === elevationWallId}
           />
         ))}
 
