@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+.DS_Store
+
+# Local notes (not part of the project)
+docs/
+.claude/
+CLAUDE.md
