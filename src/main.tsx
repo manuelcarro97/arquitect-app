@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { ErrorBoundary } from './ui/components/ErrorBoundary';
 import { loadAutosavedProject, startAutosave } from './persistence/autosave';
 import { useProjectStore } from './store/projectStore';
 import './styles.css';
@@ -11,6 +12,8 @@ startAutosave();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary area="la aplicación">
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 );

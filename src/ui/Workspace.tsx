@@ -8,6 +8,7 @@ import {
   type PanelImperativeHandle,
 } from 'react-resizable-panels';
 import { useProjectStore } from '../store/projectStore';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Editor2D } from './editor2d/Editor2D';
 import { LayoutPanel } from './layout/LayoutPanel';
 import { OpeningDetails } from './openings/OpeningDetails';
@@ -74,7 +75,9 @@ export function Workspace() {
       <Group className="workspace__panels" defaultLayout={defaultLayout} onLayoutChanged={onLayoutChanged}>
         <Panel id="plan" minSize={280} className="workspace__panel">
           {/* Remount per project so the view re-fits the new plan. */}
-          <Editor2D key={projectId} />
+          <ErrorBoundary area="el plano">
+            <Editor2D key={projectId} />
+          </ErrorBoundary>
         </Panel>
 
         <Separator className="resize-handle" />
@@ -90,9 +93,11 @@ export function Workspace() {
           className="workspace__panel"
         >
           {!viewerCollapsed && (
-            <Suspense fallback={<section className="viewer3d viewer3d--loading">Cargando vista 3D…</section>}>
-              <Viewer3D onHide={() => togglePanel(viewerPanel)} />
-            </Suspense>
+            <ErrorBoundary area="la vista 3D">
+              <Suspense fallback={<section className="viewer3d viewer3d--loading">Cargando vista 3D…</section>}>
+                <Viewer3D onHide={() => togglePanel(viewerPanel)} />
+              </Suspense>
+            </ErrorBoundary>
           )}
         </Panel>
       </Group>
@@ -115,8 +120,10 @@ export function Workspace() {
 
       {sidebarOpen && (
         <aside className="sidebar">
-          <OpeningDetails />
-          {mode === 'structure' ? <SegmentTable /> : <LayoutPanel />}
+          <ErrorBoundary area="el panel lateral">
+            <OpeningDetails />
+            {mode === 'structure' ? <SegmentTable /> : <LayoutPanel />}
+          </ErrorBoundary>
         </aside>
       )}
     </main>
