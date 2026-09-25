@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { invalidPartitionIds, isPerimeterClosed } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
+import { FinishStrips, FloorFinishFill, zonesWithFloorColors } from '../finishes/FinishOverlay';
 import { useFurniture } from '../furniture/useFurniture';
 import { PartitionLayer } from '../layout/PartitionLayer';
 import { ZoneLayer } from '../layout/ZoneLayer';
@@ -12,7 +13,7 @@ const SELECT_HINT =
   'Elige un mueble en el panel y haz clic en el plano para colocarlo · arrastra los muebles para moverlos (se pegan a las paredes) · R = girar · Supr = borrar';
 
 /** Amueblar mode: only furniture can be edited; walls, openings and zones are shown for reference. */
-export function useFurnishController({ floor, scale, active }: EditorContext): EditorController {
+export function useFurnishController({ floor, scale, active, layers }: EditorContext): EditorController {
   const select = useProjectStore((state) => state.select);
   const closed = isPerimeterClosed(floor.perimeter);
   const noTool = useCallback(() => {}, []);
@@ -25,15 +26,16 @@ export function useFurnishController({ floor, scale, active }: EditorContext): E
     showAngleSnap: false,
     layers: (
       <>
+        {layers.finishes && <FloorFinishFill floor={floor} />}
         <ZoneLayer
-          zones={floor.zones}
+          zones={layers.zones ? (layers.finishes ? zonesWithFloorColors(floor.zones) : floor.zones) : []}
           scale={scale}
           selectedId={null}
           interactive={false}
           onZonePointerDown={() => {}}
           onVertexPointerDown={() => {}}
         />
-        {furniture.layer}
+        {layers.furniture && furniture.layer}
         <PerimeterLayer
           perimeter={floor.perimeter}
           scale={scale}
@@ -53,6 +55,7 @@ export function useFurnishController({ floor, scale, active }: EditorContext): E
           onHandlePointerDown={() => {}}
         />
         {openings.layer}
+        {layers.finishes && <FinishStrips floor={floor} scale={scale} />}
       </>
     ),
     hint: !closed

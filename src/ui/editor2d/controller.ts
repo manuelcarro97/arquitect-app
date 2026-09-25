@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Floor, Point } from '../../domain';
+import type { LayerVisibility } from '../../store/viewStore';
 import type { AngleStep } from './snap';
 
 /** What every editor mode receives from the shell (viewport and shared settings). */
@@ -9,6 +10,8 @@ export interface EditorContext {
   angleStep: AngleStep;
   /** Only the active mode reacts to keyboard and pointer input. */
   active: boolean;
+  /** Which optional layers (zones, furniture, finishes) the plan shows. */
+  layers: LayerVisibility;
 }
 
 export interface ToolButton {

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { direction, invalidPartitionIds, isPerimeterClosed, moveSegment, type Id, type Point } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
+import { FinishStrips, FloorFinishFill, zonesWithFloorColors } from '../finishes/FinishOverlay';
 import { PartitionLayer } from '../layout/PartitionLayer';
 import { ZoneLayer } from '../layout/ZoneLayer';
 import { useFurniture } from '../furniture/useFurniture';
@@ -22,7 +23,7 @@ const SELECT_HINT =
   'Clic en una pared para seleccionarla · arrástrala para moverla · clic en una cota para editarla · doble clic = vista frontal (puertas y ventanas) · Supr para borrar';
 
 /** Estructura mode: draw the perimeter, select/move/delete its walls. */
-export function useStructureController({ floor, scale, angleStep, active }: EditorContext): EditorController {
+export function useStructureController({ floor, scale, angleStep, active, layers }: EditorContext): EditorController {
   const perimeter = floor.perimeter;
   const selection = useProjectStore((state) => state.selection);
   const select = useProjectStore((state) => state.select);
@@ -121,16 +122,17 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
     toolOptions: openings.toolOptions,
     layers: (
       <>
+        {layers.finishes && <FloorFinishFill floor={floor} />}
         {/* Interior shown for reference only; it is edited in Distribución mode. */}
         <ZoneLayer
-          zones={floor.zones}
+          zones={layers.zones ? (layers.finishes ? zonesWithFloorColors(floor.zones) : floor.zones) : []}
           scale={scale}
           selectedId={null}
           interactive={false}
           onZonePointerDown={() => {}}
           onVertexPointerDown={() => {}}
         />
-        {furniture.layer}
+        {layers.furniture && furniture.layer}
         <PartitionLayer
           partitions={floor.partitions}
           scale={scale}
@@ -154,6 +156,7 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
           onWallDoubleClick={tool === 'select' ? openElevation : undefined}
         />
         {openings.layer}
+        {layers.finishes && <FinishStrips floor={{ ...floor, perimeter: displayedPerimeter }} scale={scale} />}
         {drawTool.overlay}
       </>
     ),

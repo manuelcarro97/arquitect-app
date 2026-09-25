@@ -15,6 +15,7 @@ import {
 } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
+import { FinishStrips, FloorFinishFill, zonesWithFloorColors } from '../finishes/FinishOverlay';
 import { useFurniture } from '../furniture/useFurniture';
 import { useOpenings } from '../openings/useOpenings';
 import { PerimeterLayer } from '../PerimeterLayer';
@@ -59,7 +60,7 @@ function applyDrag(floor: Floor, drag: Drag): Floor | null {
 }
 
 /** Distribución mode: partitions and zones inside the (locked) perimeter. */
-export function useLayoutController({ floor, scale, angleStep, active }: EditorContext): EditorController {
+export function useLayoutController({ floor, scale, angleStep, active, layers }: EditorContext): EditorController {
   const selection = useProjectStore((state) => state.selection);
   const select = useProjectStore((state) => state.select);
   const openElevation = useProjectStore((state) => state.openElevation);
@@ -180,8 +181,9 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
     toolOptions: openings.toolOptions,
     layers: (
       <>
+        {layers.finishes && <FloorFinishFill floor={floor} />}
         <ZoneLayer
-          zones={displayed.zones}
+          zones={layers.zones ? (layers.finishes ? zonesWithFloorColors(displayed.zones) : displayed.zones) : []}
           scale={scale}
           selectedId={selectedZoneId}
           interactive={interactive}
@@ -194,7 +196,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
             startDrag(event, (world) => ({ kind: 'vertex', zoneId, index, point: world }))
           }
         />
-        {furniture.layer}
+        {layers.furniture && furniture.layer}
         <PerimeterLayer
           perimeter={floor.perimeter}
           scale={scale}
@@ -222,6 +224,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
           onPartitionDoubleClick={tool === 'select' ? openElevation : undefined}
         />
         {openings.layer}
+        {layers.finishes && <FinishStrips floor={displayed} scale={scale} />}
         {partitionTool.overlay}
         {zoneTool.overlay}
       </>

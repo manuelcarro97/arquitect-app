@@ -4,6 +4,8 @@ import { Layer, Stage } from 'react-konva';
 import { perimeterCorners, type Point } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
+import { useVisibleLayers } from '../../store/viewStore';
+import { LayerToggles } from '../components/LayerToggles';
 import { useElementSize } from '../hooks/useElementSize';
 import { CANVAS_COLORS } from './colors';
 import { Grid } from './Grid';
@@ -44,7 +46,8 @@ export function Editor2D() {
   const [angleStep, setAngleStep] = useState<AngleStep>(90);
 
   const effectiveViewport = viewport ?? fitPoints(perimeterCorners(floor.perimeter), width, height);
-  const context = { floor, scale: effectiveViewport.scale, angleStep };
+  const layers = useVisibleLayers('plan', mode);
+  const context = { floor, scale: effectiveViewport.scale, angleStep, layers };
   const structure = useStructureController({ ...context, active: mode === 'structure' });
   const layout = useLayoutController({ ...context, active: mode === 'layout' });
   const furnish = useFurnishController({ ...context, active: mode === 'furnish' });
@@ -161,6 +164,7 @@ export function Editor2D() {
       </div>
 
       {controller.hint && <div className="editor2d__hint">{controller.hint}</div>}
+      <LayerToggles view="plan" />
       {elevationOpen && <ElevationView />}
     </div>
   );
