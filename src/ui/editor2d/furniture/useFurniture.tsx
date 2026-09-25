@@ -11,7 +11,7 @@ import {
   type Point,
 } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
-import { catalogItem } from '../../furniture/catalog';
+import { pieceColor, pieceName } from '../../furniture/catalog';
 import { CANVAS_COLORS } from '../colors';
 import { isTypingInForm } from '../controller';
 import { setStageCursor } from '../labels';
@@ -54,7 +54,6 @@ function FurniturePiece({
   interactive: boolean;
   onPointerDown?: (event: KonvaEventObject<MouseEvent>) => void;
 }) {
-  const info = catalogItem(item.catalogId);
   const fontSize = Math.min(LABEL_FONT_PX / scale, item.depth / 3);
   return (
     <Group x={item.x} y={item.y} rotation={item.rotation} opacity={opacity}>
@@ -63,7 +62,7 @@ function FurniturePiece({
         y={-item.depth / 2}
         width={item.width}
         height={item.depth}
-        fill={info.color}
+        fill={pieceColor(item)}
         stroke={stroke}
         strokeWidth={1.5 / scale}
         cornerRadius={2}
@@ -84,7 +83,7 @@ function FurniturePiece({
         y={-fontSize / 2}
         width={item.width}
         align="center"
-        text={info.name}
+        text={pieceName(item)}
         fontSize={fontSize}
         fill={CANVAS_COLORS.label}
         wrap="none"
@@ -97,7 +96,7 @@ function FurniturePiece({
 
 /** Furniture on the 2D plan: drawing, placing from the catalog, dragging with wall snapping and rotating. */
 export function useFurniture({ floor, scale, active, selectable }: FurnitureOptions) {
-  const placingId = useProjectStore((state) => (active ? state.placingFurniture : null));
+  const placing = useProjectStore((state) => (active ? state.placingFurniture : null));
   const selection = useProjectStore((state) => state.selection);
   const select = useProjectStore((state) => state.select);
   const [pointer, setPointer] = useState<Point | null>(null);
@@ -112,11 +111,10 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
 
   // Piece following the pointer while placing.
   let preview: Furniture | null = null;
-  if (placingId && pointer) {
-    const info = catalogItem(placingId);
-    const base = { x: pointer.x, y: pointer.y, width: info.width, depth: info.depth, rotation: placingRotation };
+  if (placing && pointer) {
+    const base = { x: pointer.x, y: pointer.y, width: placing.width, depth: placing.depth, rotation: placingRotation };
     const position = snapped(base);
-    preview = { ...base, x: Math.round(position.x), y: Math.round(position.y), id: 'preview', catalogId: placingId, height: info.height };
+    preview = { ...placing, ...base, x: Math.round(position.x), y: Math.round(position.y), id: 'preview' };
   }
 
   const displayed: Furniture[] = floor.furniture.map((item) =>
@@ -180,8 +178,8 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
     </Group>
   );
 
-  const hint = placingId
-    ? `Colocando ${catalogItem(placingId).name}: clic para dejarlo · R = girar 90° (Shift+R: 15°) · se pega a las paredes (Shift = libre) · Esc o clic derecho = cancelar`
+  const hint = placing
+    ? `Colocando ${pieceName(placing)}: clic para dejarlo · R = girar 90° (Shift+R: 15°) · se pega a las paredes (Shift = libre) · Esc o clic derecho = cancelar`
     : drag
       ? 'Suelta para dejarlo · se pega a las paredes (mantén Shift para moverlo libre) · R = girar'
       : null;
@@ -189,12 +187,12 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
   return {
     layer,
     hint,
-    isPlacing: placingId !== null,
+    isPlacing: placing !== null,
     /** Returns true when furniture used the event (placing or dragging). */
     handlePointerMove: (world: Point, shiftKey: boolean): boolean => {
       setPointer(world);
       setFreeMove(shiftKey);
-      if (!drag) return placingId !== null;
+      if (!drag) return placing !== null;
       const piece = floor.furniture.find((item) => item.id === drag.id);
       if (!piece) return true;
       const raw = { x: world.x + drag.grab.x, y: world.y + drag.grab.y, width: piece.width, depth: piece.depth, rotation: piece.rotation };
@@ -203,7 +201,7 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
       return true;
     },
     handleClick: (): boolean => {
-      if (!placingId || !preview) return placingId !== null;
+      if (!placing || !preview) return placing !== null;
       const { id, ...input } = preview;
       void id;
       const store = useProjectStore.getState();
@@ -211,7 +209,7 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
       return true;
     },
     cancelPlacing: (): boolean => {
-      if (!placingId) return false;
+      if (!placing) return false;
       useProjectStore.getState().stopPlacingFurniture();
       return true;
     },

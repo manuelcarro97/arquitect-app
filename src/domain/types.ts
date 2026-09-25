@@ -56,6 +56,10 @@ export interface Opening {
 export interface Furniture {
   id: Id;
   catalogId: string;
+  /** Own name, for custom pieces (catalog pieces use the catalog name). */
+  name?: string;
+  /** Own colour (CSS hex), for custom pieces or to override the catalog colour. */
+  color?: string;
   x: number;
   y: number;
   rotation: number;

@@ -67,3 +67,15 @@ const FALLBACK: CatalogItem = { id: 'custom', name: 'Mueble', category: 'Otros',
 export function catalogItem(id: string): CatalogItem {
   return CATALOG.find((item) => item.id === id) ?? FALLBACK;
 }
+
+export const CUSTOM_CATALOG_ID = 'custom';
+
+/** Name shown for a placed piece: its own name (custom pieces) or the catalog name. */
+export function pieceName(piece: { catalogId: string; name?: string }): string {
+  return piece.name ?? catalogItem(piece.catalogId).name;
+}
+
+/** Colour of a placed piece: its own colour or the catalog colour. */
+export function pieceColor(piece: { catalogId: string; color?: string }): string {
+  return piece.color ?? catalogItem(piece.catalogId).color;
+}

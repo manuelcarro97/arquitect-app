@@ -84,8 +84,12 @@ export function FurnitureCatalog() {
         {CATALOG.filter((item) => item.category === category).map((item) => (
           <li key={item.id}>
             <button
-              className={`catalog-item ${placing === item.id ? 'is-active' : ''}`}
-              onClick={() => (placing === item.id ? stopPlacingFurniture() : startPlacingFurniture(item.id))}
+              className={`catalog-item ${placing?.catalogId === item.id ? 'is-active' : ''}`}
+              onClick={() =>
+                placing?.catalogId === item.id
+                  ? stopPlacingFurniture()
+                  : startPlacingFurniture({ catalogId: item.id, width: item.width, depth: item.depth, height: item.height })
+              }
               title="Clic y luego clic en el plano para colocarlo"
             >
               <span className="catalog-item__swatch" style={{ background: item.color }} />

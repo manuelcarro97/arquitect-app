@@ -55,6 +55,9 @@ export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening' | 'furn
 export type Selection = { kind: SelectionKind; id: Id } | null;
 export type NewVersionSource = 'current' | 'perimeter' | 'empty';
 
+/** What is about to be placed: a catalog piece or a custom box, with its size. */
+export type FurniturePlacement = Omit<FurnitureInput, 'x' | 'y' | 'rotation'>;
+
 export interface ProjectState {
   project: Project;
   activeVersionId: Id;
@@ -69,8 +72,8 @@ export interface ProjectState {
   elevationWallId: Id | null;
   /** Face of that wall the elevation is seen from. */
   elevationSide: WallSide;
-  /** Catalog id of the piece being placed on the plan, or null. */
-  placingFurniture: string | null;
+  /** Piece being placed on the plan (follows the pointer until clicked), or null. */
+  placingFurniture: FurniturePlacement | null;
 
   newProject: (name: string) => void;
   loadProject: (project: Project, options: { fromFile: boolean }) => void;
@@ -113,7 +116,7 @@ export interface ProjectState {
   updateFurniture: (furnitureId: Id, changes: Partial<FurnitureInput>) => void;
   removeFurniture: (furnitureId: Id) => void;
   duplicateFurniture: (furnitureId: Id) => void;
-  startPlacingFurniture: (catalogId: string) => void;
+  startPlacingFurniture: (placement: FurniturePlacement) => void;
   stopPlacingFurniture: () => void;
   /** Deletes whatever is selected (perimeter segment, partition or zone). */
   removeSelection: () => void;
@@ -330,7 +333,7 @@ export const useProjectStore = create<ProjectState>()(
           // The copy appears slightly offset so both are visible.
           get().addFurniture({ ...input, x: input.x + 20, y: input.y + 20 });
         },
-        startPlacingFurniture: (catalogId) => set({ placingFurniture: catalogId, mode: 'furnish' }),
+        startPlacingFurniture: (placement) => set({ placingFurniture: placement, mode: 'furnish' }),
         stopPlacingFurniture: () => set({ placingFurniture: null }),
         removeSelection: () => {
           const { selection } = get();
