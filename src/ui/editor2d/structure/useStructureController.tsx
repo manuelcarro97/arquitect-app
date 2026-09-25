@@ -141,5 +141,9 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
       if (tool === 'draw') drawTool.handleClick(world);
       else if (onEmpty) select(null);
     },
+    onSecondaryClick: () => {
+      if (tool === 'draw') setChosenTool('select');
+      else select(null);
+    },
   };
 }

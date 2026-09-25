@@ -235,5 +235,10 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
       else if (tool === 'zone') zoneTool.handleClick();
       else if (onEmpty) select(null);
     },
+    onSecondaryClick: () => {
+      if (tool === 'partition') partitionTool.handleSecondaryClick();
+      else if (tool === 'zone') zoneTool.handleSecondaryClick();
+      else select(null);
+    },
   };
 }

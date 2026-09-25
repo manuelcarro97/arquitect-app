@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mergeCollinearSegments } from './merge';
+import { mergeCollinearPartitions, mergeCollinearSegments } from './merge';
 import { appendSegment, closureGap, createPerimeter, perimeterCorners } from './perimeter';
 import { unwrap } from './result';
 import { rectanglePerimeter } from './test-fixtures';
@@ -75,5 +75,50 @@ describe('mergeCollinearSegments', () => {
       { length: 100, angle: 180 },
     ]);
     expect(mergeCollinearSegments(floorOf(perimeter)).perimeter.segments).toHaveLength(2);
+  });
+});
+
+describe('mergeCollinearPartitions', () => {
+  const props = { thickness: 10, height: 250 };
+
+  function partitionsFloor(partitions: Floor['partitions'], openings: Floor['openings'] = []): Floor {
+    return { ...floorOf(rectanglePerimeter(600, 400)), partitions, openings };
+  }
+
+  it('joins two partitions that continue on the same line', () => {
+    const floor = partitionsFloor([
+      { id: 'p1', a: { x: 100, y: 200 }, b: { x: 300, y: 200 }, ...props },
+      { id: 'p2', a: { x: 300, y: 200 }, b: { x: 450, y: 200 }, ...props },
+    ]);
+    const merged = mergeCollinearPartitions(floor).partitions;
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({ id: 'p1', a: { x: 100, y: 200 }, b: { x: 450, y: 200 } });
+  });
+
+  it('joins overlapping or reversed partitions and moves their openings', () => {
+    const door = { id: 'd', wallId: 'p2', type: 'door' as const, offset: 10, width: 80, height: 210, sillHeight: 0 };
+    const floor = partitionsFloor(
+      [
+        { id: 'p1', a: { x: 100, y: 200 }, b: { x: 300, y: 200 }, ...props },
+        // Drawn backwards, overlapping the first one.
+        { id: 'p2', a: { x: 500, y: 200 }, b: { x: 250, y: 200 }, ...props },
+      ],
+      [door],
+    );
+    const result = mergeCollinearPartitions(floor);
+    expect(result.partitions).toHaveLength(1);
+    expect(result.partitions[0].b).toEqual({ x: 500, y: 200 });
+    // The door spanned x 410..490 on p2; from the merged start (x = 100) that is offset 310.
+    expect(result.openings[0]).toMatchObject({ wallId: 'p1', offset: 310 });
+  });
+
+  it('leaves perpendicular, separated or different-thickness partitions alone', () => {
+    const floor = partitionsFloor([
+      { id: 'p1', a: { x: 100, y: 200 }, b: { x: 300, y: 200 }, ...props },
+      { id: 'p2', a: { x: 300, y: 200 }, b: { x: 300, y: 350 }, ...props },
+      { id: 'p3', a: { x: 350, y: 200 }, b: { x: 500, y: 200 }, ...props },
+      { id: 'p4', a: { x: 300, y: 350 }, b: { x: 300, y: 390 }, thickness: 15, height: 250 },
+    ]);
+    expect(mergeCollinearPartitions(floor)).toBe(floor);
   });
 });

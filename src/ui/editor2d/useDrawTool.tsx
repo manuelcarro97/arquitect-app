@@ -162,12 +162,12 @@ export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: Dr
   const hint = !enabled
     ? null
     : awaitingStart
-      ? 'Haz clic para colocar la primera esquina · botón derecho o central para mover el plano · rueda para zoom'
+      ? 'Haz clic para colocar la primera esquina · arrastra con botón derecho o central para mover el plano · rueda para zoom'
       : snapsToStart
         ? 'Clic para cerrar el perímetro.'
         : typed !== ''
           ? `Longitud tecleada: ${typed} cm — Enter para confirmar, Esc para borrar.`
-          : 'Clic para añadir tramo · teclea la medida + Enter · Shift = ángulo libre · Esc = seleccionar';
+          : 'Clic para añadir tramo · teclea la medida + Enter · Shift = ángulo libre · Esc o clic derecho = seleccionar';
 
   return { overlay, hint, handleClick, handlePointerMove, clearPointer: () => setPointer(null) };
 }

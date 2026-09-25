@@ -81,10 +81,10 @@ export function useZoneTool({ enabled, floor, scale, onExit }: ZoneToolOptions) 
   const hint = !enabled
     ? null
     : points.length === 0
-      ? 'Clic en cada esquina de la zona (se engancha a esquinas y paredes) · Esc = seleccionar'
+      ? 'Clic en cada esquina de la zona (se engancha a esquinas y paredes) · Esc o clic derecho = seleccionar'
       : closing
         ? 'Clic para cerrar la zona.'
-        : 'Clic para añadir punto · clic en el primero o Enter para cerrar · Retroceso = quitar último · Esc = cancelar';
+        : 'Clic para añadir punto · clic en el primero o Enter para cerrar · Retroceso = quitar último · clic derecho = cerrar · Esc = cancelar';
 
   return {
     overlay,
@@ -94,6 +94,13 @@ export function useZoneTool({ enabled, floor, scale, onExit }: ZoneToolOptions) 
       if (!enabled) return;
       if (closing) finish();
       else if (candidate) setPoints((current) => [...current, candidate.point]);
+    },
+    /** Right click: close the zone if it has 3+ points, otherwise cancel it, or leave the tool. */
+    handleSecondaryClick: () => {
+      if (!enabled) return;
+      if (points.length >= 3) finish();
+      else if (points.length > 0) setPoints([]);
+      else onExit();
     },
     reset: () => setPoints([]),
   };

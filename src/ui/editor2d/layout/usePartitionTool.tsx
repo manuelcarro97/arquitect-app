@@ -138,10 +138,10 @@ export function usePartitionTool({ enabled, floor, scale, angleStep, onExit }: P
   const hint = !enabled
     ? null
     : !start
-      ? 'Clic donde empieza el tabique (se engancha a esquinas y a cualquier punto de una pared) · Esc = seleccionar'
+      ? 'Clic donde empieza el tabique (se engancha a esquinas y a cualquier punto de una pared) · Esc o clic derecho = seleccionar'
       : typed !== ''
         ? `Longitud tecleada: ${typed} cm — Enter para confirmar, Esc para borrar.`
-        : 'Clic donde acaba el tabique · teclea la medida + Enter · Shift = ángulo libre · Esc = terminar';
+        : 'Clic donde acaba el tabique · teclea la medida + Enter · Shift = ángulo libre · Esc o clic derecho = terminar';
 
   return {
     overlay,
@@ -157,6 +157,16 @@ export function usePartitionTool({ enabled, floor, scale, angleStep, onExit }: P
         return;
       }
       commit();
+    },
+    /** Right click: end the current chain of partitions, or leave the tool if none is in progress. */
+    handleSecondaryClick: () => {
+      if (!enabled) return;
+      if (start) {
+        setStart(null);
+        setTyped('');
+      } else {
+        onExit();
+      }
     },
     reset: () => {
       setStart(null);

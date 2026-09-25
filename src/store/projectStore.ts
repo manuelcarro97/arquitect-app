@@ -10,6 +10,7 @@ import {
   findVersion,
   removeVersion,
   renameVersion,
+  mergeCollinearPartitions,
   mergeCollinearSegments,
   moveSegment,
   ok,
@@ -126,6 +127,13 @@ export const useProjectStore = create<ProjectState>()(
           return result.ok ? ok(mergeCollinearSegments({ ...floor, perimeter: result.value })) : result;
         });
 
+      // Partition edits end by joining partitions that ended up on the same line.
+      const editPartitions = (operation: (floor: Floor) => Result<Floor>): boolean =>
+        editFloor((floor) => {
+          const result = operation(floor);
+          return result.ok ? ok(mergeCollinearPartitions(result.value)) : result;
+        });
+
       const replaceProject = (project: Project, savedProject: Project | null) => {
         set({
           project,
@@ -212,15 +220,15 @@ export const useProjectStore = create<ProjectState>()(
           if (removed) set({ selection: null });
         },
 
-        addPartition: (a, b) => editFloor((floor) => addPartition(floor, a, b)),
+        addPartition: (a, b) => editPartitions((floor) => addPartition(floor, a, b)),
         movePartition: (partitionId, delta) => {
-          editFloor((floor) => movePartition(floor, partitionId, delta));
+          editPartitions((floor) => movePartition(floor, partitionId, delta));
         },
         setPartitionEndpoints: (partitionId, a, b) => {
-          editFloor((floor) => setPartitionEndpoints(floor, partitionId, a, b));
+          editPartitions((floor) => setPartitionEndpoints(floor, partitionId, a, b));
         },
         setPartitionLength: (partitionId, length) => {
-          editFloor((floor) => setPartitionLength(floor, partitionId, length));
+          editPartitions((floor) => setPartitionLength(floor, partitionId, length));
         },
         removePartition: (partitionId) => {
           if (editFloor((floor) => removePartition(floor, partitionId))) set({ selection: null });

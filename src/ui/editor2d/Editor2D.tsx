@@ -1,5 +1,5 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { Layer, Stage } from 'react-konva';
 import { perimeterCorners, type Point } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
@@ -19,7 +19,12 @@ const PAN_BUTTON_RIGHT = 2;
 interface Pan {
   start: Point;
   viewport: Viewport;
+  button: number;
+  /** Set once the pointer travels far enough to count as a drag rather than a click. */
+  moved: boolean;
 }
+
+const CLICK_MAX_TRAVEL_PX = 4;
 
 /**
  * 2D plan canvas: owns zoom, pan and the grid, and forwards pointer input to the controller
@@ -52,19 +57,31 @@ export function Editor2D() {
   const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
     if (event.evt.button !== PAN_BUTTON_MIDDLE && event.evt.button !== PAN_BUTTON_RIGHT) return;
     event.evt.preventDefault();
-    setPan({ start: { x: event.evt.clientX, y: event.evt.clientY }, viewport: effectiveViewport });
+    setPan({
+      start: { x: event.evt.clientX, y: event.evt.clientY },
+      viewport: effectiveViewport,
+      button: event.evt.button,
+      moved: false,
+    });
   };
+
+  // Latest controller without re-subscribing the pan listeners on every render.
+  const secondaryClick = useEffectEvent(() => controller.onSecondaryClick());
 
   useEffect(() => {
     if (!pan) return;
     const onMouseMove = (event: MouseEvent) => {
-      setViewport({
-        ...pan.viewport,
-        x: pan.viewport.x + event.clientX - pan.start.x,
-        y: pan.viewport.y + event.clientY - pan.start.y,
-      });
+      const dx = event.clientX - pan.start.x;
+      const dy = event.clientY - pan.start.y;
+      if (!pan.moved && Math.hypot(dx, dy) < CLICK_MAX_TRAVEL_PX) return;
+      if (!pan.moved) setPan({ ...pan, moved: true });
+      setViewport({ ...pan.viewport, x: pan.viewport.x + dx, y: pan.viewport.y + dy });
     };
-    const onMouseUp = () => setPan(null);
+    const onMouseUp = () => {
+      // A right click that did not drag the plan means "finish / leave the tool".
+      if (!pan.moved && pan.button === PAN_BUTTON_RIGHT) secondaryClick();
+      setPan(null);
+    };
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('mouseup', onMouseUp);
     return () => {
@@ -100,7 +117,7 @@ export function Editor2D() {
           onMouseMove={handleMouseMove}
           onClick={handleClick}
           onContextMenu={(event) => event.evt.preventDefault()}
-          style={{ cursor: pan ? 'grabbing' : controller.cursor }}
+          style={{ cursor: pan?.moved ? 'grabbing' : controller.cursor }}
         >
           <Layer>
             <Grid viewport={effectiveViewport} width={width} height={height} />

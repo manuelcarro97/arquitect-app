@@ -34,6 +34,8 @@ export interface EditorController {
   onPointerMove: (world: Point, shiftKey: boolean) => void;
   /** `onEmpty` is true when the click did not hit any shape. */
   onClick: (world: Point, onEmpty: boolean) => void;
+  /** Right click without dragging: finish or leave the current tool. */
+  onSecondaryClick: () => void;
 }
 
 export function isTypingInForm(target: EventTarget | null): boolean {
