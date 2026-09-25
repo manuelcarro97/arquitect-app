@@ -6,6 +6,11 @@ import { NumberCell } from '../components/NumberCell';
 import { CATALOG, CATALOG_CATEGORIES, catalogItem, type CatalogCategory } from './catalog';
 import { MODEL_CATALOG } from './modelCatalog';
 
+/** Lower case without accents, so "sofa" finds "Sofá". */
+function normalizeForSearch(text: string): string {
+  return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+}
+
 function Measure({ label, value, onCommit }: { label: string; value: number; onCommit: (value: number) => void }) {
   return (
     <label className="field">
@@ -76,7 +81,13 @@ export function FurnitureCatalog() {
   const stopPlacingFurniture = useProjectStore((state) => state.stopPlacingFurniture);
   const [category, setCategory] = useState<CatalogCategory>('Salón');
   const [kind, setKind] = useState<'boxes' | 'models'>('boxes');
-  const items = (kind === 'boxes' ? CATALOG : MODEL_CATALOG).filter((item) => item.category === category);
+  const [query, setQuery] = useState('');
+  const searching = normalizeForSearch(query) !== '';
+  const source = kind === 'boxes' ? CATALOG : MODEL_CATALOG;
+  // While searching, look in every category; otherwise show the chosen one.
+  const items = searching
+    ? source.filter((item) => normalizeForSearch(item.name).includes(normalizeForSearch(query)))
+    : source.filter((item) => item.category === category);
 
   return (
     <section className="details">
@@ -94,7 +105,16 @@ export function FurnitureCatalog() {
           ? 'Cajas simples: puedes cambiar ancho, fondo y alto para comprobar si algo cabe.'
           : 'Modelos realistas con medidas fijas, para hacerte una idea de cómo queda.'}
       </p>
-      <div className="chip-row" role="tablist" aria-label="Categorías de muebles">
+      <input
+        type="search"
+        className="catalog-search"
+        placeholder="Buscar mueble (p. ej. sofa, cama, ducha…)"
+        aria-label="Buscar mueble por nombre"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={(event) => event.key === 'Escape' && setQuery('')}
+      />
+      <div className={`chip-row ${searching ? 'is-dimmed' : ''}`} role="tablist" aria-label="Categorías de muebles">
         {CATALOG_CATEGORIES.map((name) => (
           <button
             key={name}
@@ -108,7 +128,9 @@ export function FurnitureCatalog() {
         ))}
       </div>
       <ul className="catalog-list">
-        {items.length === 0 && <li className="panel__help">No hay modelos de esta categoría.</li>}
+        {items.length === 0 && (
+          <li className="panel__help">{searching ? 'Ningún mueble coincide con la búsqueda.' : 'No hay muebles en esta categoría.'}</li>
+        )}
         {items.map((item) => (
           <li key={item.id}>
             <button
@@ -121,7 +143,10 @@ export function FurnitureCatalog() {
               title="Clic y luego clic en el plano para colocarlo"
             >
               <span className="catalog-item__swatch" style={{ background: item.color }} />
-              <span className="catalog-item__name">{item.name}</span>
+              <span className="catalog-item__name">
+                {item.name}
+                {searching && <small className="catalog-item__category"> · {item.category}</small>}
+              </span>
               <span className="catalog-item__size">
                 {item.width}×{item.depth}
               </span>

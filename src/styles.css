@@ -824,6 +824,18 @@ select:focus {
 
 /* Furniture catalog */
 
+.catalog-search {
+  width: 100%;
+}
+
+.chip-row.is-dimmed {
+  opacity: 0.4;
+}
+
+.catalog-item__category {
+  color: var(--text-muted);
+}
+
 .segmented--full {
   display: flex;
 }
