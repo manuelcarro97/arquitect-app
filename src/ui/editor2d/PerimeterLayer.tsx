@@ -24,6 +24,14 @@ interface PerimeterLayerProps {
 const LABEL_FONT_PX = 12;
 const LABEL_WIDTH_PX = 90;
 const MIN_HIT_PX = 14;
+const LABEL_GAP_PX = 5;
+
+/** Wall angle turned into a text rotation in [-90, 90) so labels never read upside down. */
+function readableRotation(angle: number): number {
+  if (angle >= 90 && angle < 270) return angle - 180;
+  if (angle >= 270) return angle - 360;
+  return angle;
+}
 
 function midpoint(a: Point, b: Point): Point {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -52,7 +60,8 @@ export function PerimeterLayer({
         const unit = direction(segment.angle);
         // Normal (-dir.y, dir.x) points inwards for clockwise drawings; labels go on the other side.
         const outward = { x: unit.y, y: -unit.x };
-        const labelDistance = segment.thickness / 2 + 14 / scale;
+        // Label runs parallel to the wall, just outside it (half the text height plus a small gap).
+        const labelDistance = segment.thickness / 2 + fontSize / 2 + LABEL_GAP_PX / scale;
         const center = midpoint(start, end);
         const labelPosition = { x: center.x + outward.x * labelDistance, y: center.y + outward.y * labelDistance };
         const color = selected ? CANVAS_COLORS.wallSelected : CANVAS_COLORS.wall;
@@ -81,6 +90,7 @@ export function PerimeterLayer({
               width={labelWidth}
               offsetX={labelWidth / 2}
               offsetY={fontSize / 2}
+              rotation={readableRotation(segment.angle)}
               align="center"
               text={formatCm(Math.round(segment.length * 10) / 10)}
               fontSize={fontSize}

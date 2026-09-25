@@ -6,7 +6,7 @@ import { useProjectStore } from './store/projectStore';
 import './styles.css';
 
 const autosaved = loadAutosavedProject();
-if (autosaved) useProjectStore.getState().loadProject(autosaved);
+if (autosaved) useProjectStore.getState().loadProject(autosaved, { fromFile: false });
 startAutosave();
 
 createRoot(document.getElementById('root')!).render(

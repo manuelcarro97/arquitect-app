@@ -4,8 +4,11 @@ import {
   appendClosingSegment,
   appendSegment,
   createProject,
+  addEmptyVersion,
   duplicateVersion,
   findVersion,
+  removeVersion,
+  renameVersion,
   mergeCollinearSegments,
   moveSegment,
   ok,
@@ -25,6 +28,7 @@ import {
 
 export type EditorMode = 'structure' | 'layout';
 export type Selection = { kind: 'segment'; id: Id } | null;
+export type NewVersionSource = 'current' | 'empty';
 
 export interface ProjectState {
   project: Project;
@@ -34,12 +38,17 @@ export interface ProjectState {
   /** Segment whose length input should receive focus (set when clicking a dimension label). */
   lengthEditRequest: Id | null;
   lastError: DomainError | null;
+  /** Project as last written to (or read from) a file. Differs from `project` when there are unsaved changes. */
+  savedProject: Project | null;
 
   newProject: (name: string) => void;
-  loadProject: (project: Project) => void;
+  loadProject: (project: Project, options: { fromFile: boolean }) => void;
   renameProject: (name: string) => void;
   setActiveVersion: (versionId: Id) => void;
-  duplicateActiveVersion: (name: string) => void;
+  createVersion: (name: string, source: NewVersionSource) => void;
+  renameActiveVersion: (name: string) => void;
+  removeActiveVersion: () => void;
+  markSaved: (project: Project) => void;
   setMode: (mode: EditorMode) => void;
   select: (selection: Selection) => void;
   requestLengthEdit: (segmentId: Id | null) => void;
@@ -90,9 +99,10 @@ export const useProjectStore = create<ProjectState>()(
           return result.ok ? ok(mergeCollinearSegments({ ...floor, perimeter: result.value })) : result;
         });
 
-      const replaceProject = (project: Project) => {
+      const replaceProject = (project: Project, savedProject: Project | null) => {
         set({
           project,
+          savedProject,
           activeVersionId: project.versions[0].id,
           selection: null,
           lengthEditRequest: null,
@@ -108,20 +118,36 @@ export const useProjectStore = create<ProjectState>()(
         selection: null,
         lengthEditRequest: null,
         lastError: null,
+        savedProject: initialProject,
 
-        newProject: (name) => replaceProject(freshProject(name)),
-        loadProject: (project) => replaceProject(project),
+        newProject: (name) => {
+          const project = freshProject(name);
+          replaceProject(project, project);
+        },
+        loadProject: (project, { fromFile }) => replaceProject(project, fromFile ? project : null),
+        markSaved: (project) => set({ savedProject: project }),
         renameProject: (name) => {
           if (name.trim() === '') return set({ lastError: 'INVALID_NAME' });
           set({ project: { ...get().project, name: name.trim() } });
         },
         setActiveVersion: (versionId) => set({ activeVersionId: versionId, selection: null }),
-        duplicateActiveVersion: (name) => {
+        createVersion: (name, source) => {
           const { project, activeVersionId } = get();
-          const result = duplicateVersion(project, activeVersionId, name);
+          const result =
+            source === 'current' ? duplicateVersion(project, activeVersionId, name) : addEmptyVersion(project, name);
           if (!result.ok) return set({ lastError: result.error });
-          const copy = result.value.versions[result.value.versions.length - 1];
-          set({ project: result.value, activeVersionId: copy.id, selection: null, lastError: null });
+          const created = result.value.versions[result.value.versions.length - 1];
+          set({ project: result.value, activeVersionId: created.id, selection: null, lastError: null });
+        },
+        renameActiveVersion: (name) => {
+          const result = renameVersion(get().project, get().activeVersionId, name);
+          if (!result.ok) return set({ lastError: result.error });
+          set({ project: result.value, lastError: null });
+        },
+        removeActiveVersion: () => {
+          const result = removeVersion(get().project, get().activeVersionId);
+          if (!result.ok) return set({ lastError: result.error });
+          set({ project: result.value, activeVersionId: result.value.versions[0].id, selection: null, lastError: null });
         },
         setMode: (mode) => set({ mode, selection: null }),
         select: (selection) => set({ selection }),

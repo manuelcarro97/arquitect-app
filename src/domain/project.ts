@@ -45,6 +45,13 @@ export function duplicateVersion(
   return ok({ ...project, versions: [...project.versions, copy] });
 }
 
+/** Appends a new version with an empty floor. */
+export function addEmptyVersion(project: Project, name: string, now: Date = new Date()): Result<Project> {
+  if (isBlank(name)) return err('INVALID_NAME');
+  const version: Version = { id: createId(), name: name.trim(), createdAt: now.toISOString(), floor: createEmptyFloor() };
+  return ok({ ...project, versions: [...project.versions, version] });
+}
+
 export function renameVersion(project: Project, versionId: Id, name: string): Result<Project> {
   if (!findVersion(project, versionId)) return err('VERSION_NOT_FOUND');
   if (isBlank(name)) return err('INVALID_NAME');
