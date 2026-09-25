@@ -33,6 +33,9 @@ import {
   updateOpening,
   findWall,
   interiorSide,
+  setWallFinish,
+  setDefaultFloorFinish,
+  setZoneWallsFinish,
   addFurniture,
   removeFurniture,
   updateFurniture,
@@ -47,12 +50,14 @@ import {
   type SegmentInput,
   type OpeningInput,
   type WallSide,
+  type MaterialId,
   type ZoneInput,
 } from '../domain';
 
-export type EditorMode = 'structure' | 'layout' | 'furnish';
-export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening' | 'furniture';
-export type Selection = { kind: SelectionKind; id: Id } | null;
+export type EditorMode = 'structure' | 'layout' | 'furnish' | 'finishes';
+export type SelectionKind = 'segment' | 'partition' | 'zone' | 'opening' | 'furniture' | 'wallFace' | 'floor';
+/** What is selected. `side` is only used for wall faces; "floor" (general floor) uses the version id. */
+export type Selection = { kind: SelectionKind; id: Id; side?: WallSide } | null;
 export type NewVersionSource = 'current' | 'perimeter' | 'empty';
 
 /** What is about to be placed: a catalog piece or a custom box, with its size. */
@@ -118,6 +123,11 @@ export interface ProjectState {
   duplicateFurniture: (furnitureId: Id) => void;
   startPlacingFurniture: (placement: FurniturePlacement) => void;
   stopPlacingFurniture: () => void;
+  setWallFinish: (wallId: Id, side: WallSide, material: MaterialId | null) => void;
+  setZoneFloorFinish: (zoneId: Id, material: MaterialId | null) => void;
+  setDefaultFloorFinish: (material: MaterialId | null) => void;
+  /** Applies one material to every wall face that faces into the zone. */
+  setZoneWallsFinish: (zoneId: Id, material: MaterialId | null) => void;
   /** Deletes whatever is selected (perimeter segment, partition or zone). */
   removeSelection: () => void;
 }
@@ -335,6 +345,18 @@ export const useProjectStore = create<ProjectState>()(
         },
         startPlacingFurniture: (placement) => set({ placingFurniture: placement, mode: 'furnish' }),
         stopPlacingFurniture: () => set({ placingFurniture: null }),
+        setWallFinish: (wallId, side, material) => {
+          editFloor((floor) => setWallFinish(floor, wallId, side, material));
+        },
+        setZoneFloorFinish: (zoneId, material) => {
+          editFloor((floor) => updateZone(floor, zoneId, { floorFinish: material ?? undefined }));
+        },
+        setDefaultFloorFinish: (material) => {
+          editFloor((floor) => ok(setDefaultFloorFinish(floor, material)));
+        },
+        setZoneWallsFinish: (zoneId, material) => {
+          editFloor((floor) => setZoneWallsFinish(floor, zoneId, material));
+        },
         removeSelection: () => {
           const { selection } = get();
           if (!selection) return;

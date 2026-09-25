@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { Shape } from 'three';
-import type { Point } from '../../domain';
+import type { MaterialId, Point } from '../../domain';
 import { CM_TO_M, SCENE_COLORS } from './scene';
+import { SurfaceMaterial } from './SurfaceMaterial';
 
-/** Flat floor filling the closed perimeter polygon. */
-export function FloorMesh({ polygon }: { polygon: Point[] }) {
+/** Flat floor filling the closed perimeter polygon, with the general floor finish if any. */
+export function FloorMesh({ polygon, finish }: { polygon: Point[]; finish?: MaterialId }) {
   const shape = useMemo(() => {
     // Built in the XY plane with y negated, then laid flat by rotating -90° around X (so plan y → scene z).
     const floorShape = new Shape();
@@ -22,7 +23,7 @@ export function FloorMesh({ polygon }: { polygon: Point[] }) {
     <mesh rotation-x={-Math.PI / 2} position-y={0.001} receiveShadow>
       <shapeGeometry args={[shape]} />
       {/* Polygon offset keeps the floor drawn in front of the ground plane (avoids flickering). */}
-      <meshStandardMaterial color={SCENE_COLORS.floor} roughness={0.8} polygonOffset polygonOffsetFactor={-1} polygonOffsetUnits={-1} />
+      <SurfaceMaterial materialId={finish} fallback={SCENE_COLORS.floor} polygonOffsetFactor={-1} />
     </mesh>
   );
 }

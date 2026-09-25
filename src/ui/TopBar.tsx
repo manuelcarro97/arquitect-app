@@ -83,6 +83,14 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
           >
             Amueblar
           </button>
+          <button
+            className={mode === 'finishes' ? 'is-active' : ''}
+            disabled={!perimeterClosed}
+            onClick={() => setMode('finishes')}
+            title={perimeterClosed ? 'Pintura, revestimientos y suelos' : 'Cierra el perímetro para elegir acabados'}
+          >
+            Acabados
+          </button>
         </div>
       </div>
 

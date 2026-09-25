@@ -12,3 +12,4 @@ export * from './merge';
 export * from './partitionLinks';
 export * from './openingGeometry';
 export * from './furniture';
+export * from './finishes';

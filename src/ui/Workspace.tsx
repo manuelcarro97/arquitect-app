@@ -12,7 +12,8 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { Editor2D } from './editor2d/Editor2D';
 import { LayoutPanel } from './layout/LayoutPanel';
 import { FurnishPanel, FurnitureDetails } from './furniture/FurniturePanels';
-import { OpeningDetails } from "./openings/OpeningDetails";
+import { FinishesPanel } from './materials/FinishesPanel';
+import { OpeningDetails } from './openings/OpeningDetails';
 import { SegmentTable } from './structure/SegmentTable';
 
 // The 3D engine is heavy: load it in its own chunk so the editor appears first.
@@ -54,7 +55,7 @@ function togglePanel(panel: PanelImperativeHandle | null) {
 export function Workspace() {
   const projectId = useProjectStore((state) => state.project.id);
   const mode = useProjectStore((state) => state.mode);
-  const panelName = mode === 'structure' ? 'Perímetro' : mode === 'layout' ? 'Distribución' : 'Amueblar';
+  const panelName = { structure: 'Perímetro', layout: 'Distribución', furnish: 'Amueblar', finishes: 'Acabados' }[mode];
   const [viewerPanel, setViewerPanel] = usePanelCallbackRef();
   const [viewerCollapsed, setViewerCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
@@ -124,7 +125,10 @@ export function Workspace() {
           <ErrorBoundary area="el panel lateral">
             <OpeningDetails />
             <FurnitureDetails />
-            {mode === 'structure' ? <SegmentTable /> : mode === 'layout' ? <LayoutPanel /> : <FurnishPanel />}
+            {mode === 'structure' && <SegmentTable />}
+            {mode === 'layout' && <LayoutPanel />}
+            {mode === 'furnish' && <FurnishPanel />}
+            {mode === 'finishes' && <FinishesPanel />}
           </ErrorBoundary>
         </aside>
       )}

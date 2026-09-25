@@ -82,6 +82,8 @@ export interface Floor {
   openings: Opening[];
   furniture: Furniture[];
   zones: Zone[];
+  /** Floor finish wherever no zone sets its own. */
+  floorFinish?: MaterialId;
 }
 
 export interface Version {

@@ -50,6 +50,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const floor = useActiveFloor();
   const selection = useProjectStore((state) => state.selection);
   const mode = useProjectStore((state) => state.mode);
+  const select = useProjectStore((state) => state.select);
   const elevationWallId = useProjectStore((state) => state.elevationWallId);
   const elevationSide = useProjectStore((state) => state.elevationSide);
   const [controls, setControls] = useState<Controls | null>(null);
@@ -86,7 +87,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
           <meshStandardMaterial color={SCENE_COLORS.ground} roughness={1} />
         </mesh>
 
-        {polygon && <FloorMesh polygon={polygon} />}
+        {polygon && <FloorMesh polygon={polygon} finish={floor.floorFinish} />}
         <ZoneFloors zones={floor.zones} />
         <OpeningMeshes floor={floor} />
         <FurnitureMeshes
@@ -104,6 +105,8 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
             openings={floor.openings}
             selected={wall.id === selectedId}
             highlighted={wall.id === elevationWallId}
+            selectedSide={selection?.kind === 'wallFace' && selection.id === wall.id ? (selection.side ?? null) : null}
+            onFaceClick={mode === 'finishes' ? (side) => select({ kind: 'wallFace', id: wall.id, side }) : undefined}
           />
         ))}
 

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Shape } from 'three';
 import type { Zone } from '../../domain';
 import { CM_TO_M } from './scene';
+import { SurfaceMaterial } from './SurfaceMaterial';
 
 function zoneShape(zone: Zone): Shape {
   // Same convention as the main floor: XY plane with y negated, laid flat by the mesh rotation.
@@ -22,15 +23,19 @@ export function ZoneFloors({ zones }: { zones: Zone[] }) {
       {shapes.map(({ zone, shape }) => (
         <mesh key={zone.id} rotation-x={-Math.PI / 2} position-y={0.002} receiveShadow>
           <shapeGeometry args={[shape]} />
-          <meshStandardMaterial
-            color={zone.color}
-            roughness={0.85}
-            transparent
-            opacity={0.7}
-            polygonOffset
-            polygonOffsetFactor={-2}
-            polygonOffsetUnits={-2}
-          />
+          {zone.floorFinish ? (
+            <SurfaceMaterial materialId={zone.floorFinish} fallback={zone.color} polygonOffsetFactor={-2} />
+          ) : (
+            <meshStandardMaterial
+              color={zone.color}
+              roughness={0.85}
+              transparent
+              opacity={0.7}
+              polygonOffset
+              polygonOffsetFactor={-2}
+              polygonOffsetUnits={-2}
+            />
+          )}
         </mesh>
       ))}
     </>

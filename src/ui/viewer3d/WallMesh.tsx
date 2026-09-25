@@ -1,7 +1,8 @@
 import { Edges } from '@react-three/drei';
-import { direction, type Opening, type WallGeometry } from '../../domain';
+import { direction, type Opening, type WallGeometry, type WallSide } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
 import { CM_TO_M, planAngleToRotationY, SCENE_COLORS, toScene } from './scene';
+import { SurfaceMaterial } from './SurfaceMaterial';
 import { wallPieces } from './wallPieces';
 
 interface WallMeshProps {
@@ -11,9 +12,21 @@ interface WallMeshProps {
   selected: boolean;
   /** Wall currently shown in the elevation view. */
   highlighted?: boolean;
+  /** Face selected in Acabados mode, shown with a glow. */
+  selectedSide?: WallSide | null;
+  /** Acabados mode: clicking face A or B of the wall. */
+  onFaceClick?: (side: WallSide) => void;
 }
 
-export function WallMesh({ wall, angle, openings, selected, highlighted = false }: WallMeshProps) {
+/**
+ * Box faces of each piece, in Three.js order: +x, -x, +y, -y, +z, -z.
+ * The box is turned so its local +z points along the wall normal, i.e. towards face A.
+ */
+const FACE_A_INDEX = 4;
+const FACE_B_INDEX = 5;
+const PLAIN_FACES = [0, 1, 2, 3];
+
+export function WallMesh({ wall, angle, openings, selected, highlighted = false, selectedSide = null, onFaceClick }: WallMeshProps) {
   const unit = direction(angle);
   // Perimeter walls are lengthened by half their thickness so the corners close.
   const extension = wall.kind === 'perimeter' ? wall.thickness / 2 : 0;
@@ -25,6 +38,7 @@ export function WallMesh({ wall, angle, openings, selected, highlighted = false 
       {wallPieces(wall, openings, extension).map((piece, i) => {
         const along = (piece.from + piece.to) / 2;
         const center = { x: wall.start.x + unit.x * along, y: wall.start.y + unit.y * along };
+        const sizeCm = { width: piece.to - piece.from, height: piece.top - piece.bottom };
         return (
           <mesh
             key={i}
@@ -32,15 +46,35 @@ export function WallMesh({ wall, angle, openings, selected, highlighted = false 
             rotation-y={planAngleToRotationY(angle)}
             castShadow
             receiveShadow
+            onClick={(event) => {
+              const index = event.face?.materialIndex;
+              if (!onFaceClick || (index !== FACE_A_INDEX && index !== FACE_B_INDEX)) return;
+              event.stopPropagation();
+              onFaceClick(index === FACE_A_INDEX ? 'A' : 'B');
+            }}
             onDoubleClick={(event) => {
               event.stopPropagation();
               openElevation(wall.id);
             }}
           >
-            <boxGeometry
-              args={[(piece.to - piece.from) * CM_TO_M, (piece.top - piece.bottom) * CM_TO_M, wall.thickness * CM_TO_M]}
+            <boxGeometry args={[sizeCm.width * CM_TO_M, sizeCm.height * CM_TO_M, wall.thickness * CM_TO_M]} />
+            {PLAIN_FACES.map((face) => (
+              <meshStandardMaterial key={face} attach={`material-${face}`} color={color} roughness={0.9} />
+            ))}
+            <SurfaceMaterial
+              attach={`material-${FACE_A_INDEX}`}
+              materialId={highlighted || selected ? undefined : wall.finishA}
+              fallback={color}
+              sizeCm={sizeCm}
+              highlighted={selectedSide === 'A'}
             />
-            <meshStandardMaterial color={color} roughness={0.9} />
+            <SurfaceMaterial
+              attach={`material-${FACE_B_INDEX}`}
+              materialId={highlighted || selected ? undefined : wall.finishB}
+              fallback={color}
+              sizeCm={sizeCm}
+              highlighted={selectedSide === 'B'}
+            />
             <Edges color={SCENE_COLORS.wallEdge} threshold={20} />
           </mesh>
         );
