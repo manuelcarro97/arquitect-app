@@ -33,7 +33,7 @@ type Drag =
 
 const SNAP_PX = 10;
 const SELECT_HINT =
-  'Clic en un tabique o zona para seleccionarlo · arrastra el tabique para moverlo · arrastra los puntos blancos para ajustar · Supr para borrar';
+  'Clic en un tabique o zona para seleccionarlo · arrastra el tabique para moverlo · arrastra los puntos blancos para ajustar · doble clic en una pared = vista frontal · Supr para borrar';
 
 function worldFrom(event: KonvaEventObject<MouseEvent>): Point | null {
   return event.target.getStage()?.getRelativePointerPosition() ?? null;
@@ -61,6 +61,7 @@ function applyDrag(floor: Floor, drag: Drag): Floor | null {
 export function useLayoutController({ floor, scale, angleStep, active }: EditorContext): EditorController {
   const selection = useProjectStore((state) => state.selection);
   const select = useProjectStore((state) => state.select);
+  const openElevation = useProjectStore((state) => state.openElevation);
   const store = useProjectStore.getState;
 
   const [tool, setTool] = useState<LayoutTool>('select');
@@ -198,6 +199,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
           locked
           onWallPointerDown={() => {}}
           onLabelClick={() => {}}
+          onWallDoubleClick={tool === 'select' ? openElevation : undefined}
         />
         <PartitionLayer
           partitions={displayed.partitions}
@@ -213,6 +215,7 @@ export function useLayoutController({ floor, scale, angleStep, active }: EditorC
             const partition = floor.partitions.find((p) => p.id === partitionId);
             if (partition) startDrag(event, () => ({ kind: 'endpoint', id: partitionId, end, point: partition[end] }));
           }}
+          onPartitionDoubleClick={tool === 'select' ? openElevation : undefined}
         />
         {openings.layer}
         {partitionTool.overlay}

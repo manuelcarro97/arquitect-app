@@ -106,7 +106,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
         </button>
       </div>
       {walls.length === 0 && <div className="viewer3d__empty">Dibuja el perímetro en el plano para verlo en 3D</div>}
-      <div className="viewer3d__hint">Arrastrar: girar · botón derecho: desplazar · rueda: zoom</div>
+      <div className="viewer3d__hint">Arrastrar: girar · botón derecho: desplazar · rueda: zoom · doble clic en una pared: vista frontal</div>
     </div>
   );
 }

@@ -21,6 +21,8 @@ interface PerimeterLayerProps {
   locked?: boolean;
   onWallPointerDown: (segmentId: Id, event: KonvaEventObject<MouseEvent>) => void;
   onLabelClick: (segmentId: Id) => void;
+  /** Double click on a wall (opens its elevation view). When given, walls listen even if not interactive. */
+  onWallDoubleClick?: (segmentId: Id) => void;
 }
 
 const LABEL_FONT_PX = 12;
@@ -37,6 +39,7 @@ export function PerimeterLayer({
   locked = false,
   onWallPointerDown,
   onLabelClick,
+  onWallDoubleClick,
 }: PerimeterLayerProps) {
   const corners = perimeterCorners(perimeter);
   const gap = closureGap(perimeter);
@@ -66,9 +69,11 @@ export function PerimeterLayer({
               strokeWidth={segment.thickness}
               lineCap="square"
               hitStrokeWidth={Math.max(segment.thickness, MIN_HIT_PX / scale)}
-              listening={interactive}
-              onMouseDown={(event) => onWallPointerDown(segment.id, event)}
+              listening={interactive || onWallDoubleClick !== undefined}
+              onMouseDown={(event) => interactive && onWallPointerDown(segment.id, event)}
+              onDblClick={() => onWallDoubleClick?.(segment.id)}
               onMouseEnter={(event) => {
+                if (!interactive) return;
                 const container = event.target.getStage()?.container();
                 if (container) container.style.cursor = 'move';
               }}

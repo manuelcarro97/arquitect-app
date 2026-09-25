@@ -18,13 +18,14 @@ interface WallDrag {
 }
 
 const SELECT_HINT =
-  'Clic en una pared para seleccionarla · arrástrala para moverla · clic en una cota para editarla · Supr para borrar · botón derecho o central para mover el plano';
+  'Clic en una pared para seleccionarla · arrástrala para moverla · clic en una cota para editarla · doble clic = vista frontal (puertas y ventanas) · Supr para borrar';
 
 /** Estructura mode: draw the perimeter, select/move/delete its walls. */
 export function useStructureController({ floor, scale, angleStep, active }: EditorContext): EditorController {
   const perimeter = floor.perimeter;
   const selection = useProjectStore((state) => state.selection);
   const select = useProjectStore((state) => state.select);
+  const openElevation = useProjectStore((state) => state.openElevation);
   const requestLengthEdit = useProjectStore((state) => state.requestLengthEdit);
   const movePerimeterSegment = useProjectStore((state) => state.movePerimeterSegment);
 
@@ -133,6 +134,7 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
           interactive={false}
           onPartitionPointerDown={() => {}}
           onHandlePointerDown={() => {}}
+          onPartitionDoubleClick={tool === 'select' ? openElevation : undefined}
         />
         <PerimeterLayer
           perimeter={displayedPerimeter}
@@ -144,6 +146,7 @@ export function useStructureController({ floor, scale, angleStep, active }: Edit
             select({ kind: 'segment', id: segmentId });
             requestLengthEdit(segmentId);
           }}
+          onWallDoubleClick={tool === 'select' ? openElevation : undefined}
         />
         {openings.layer}
         {drawTool.overlay}

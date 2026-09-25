@@ -15,6 +15,8 @@ interface PartitionLayerProps {
   interactive: boolean;
   onPartitionPointerDown: (partitionId: Id, event: KonvaEventObject<MouseEvent>) => void;
   onHandlePointerDown: (partitionId: Id, end: PartitionEnd, event: KonvaEventObject<MouseEvent>) => void;
+  /** Double click on a partition (opens its elevation view). When given, partitions listen even if not interactive. */
+  onPartitionDoubleClick?: (partitionId: Id) => void;
 }
 
 const LABEL_FONT_PX = 11;
@@ -30,6 +32,7 @@ export function PartitionLayer({
   interactive,
   onPartitionPointerDown,
   onHandlePointerDown,
+  onPartitionDoubleClick,
 }: PartitionLayerProps) {
   const fontSize = LABEL_FONT_PX / scale;
   const labelWidth = LABEL_WIDTH_PX / scale;
@@ -58,9 +61,10 @@ export function PartitionLayer({
               strokeWidth={partition.thickness}
               lineCap="butt"
               hitStrokeWidth={Math.max(partition.thickness, MIN_HIT_PX / scale)}
-              listening={interactive}
-              onMouseDown={(event) => onPartitionPointerDown(partition.id, event)}
-              onMouseEnter={(event) => setStageCursor(event.target, 'move')}
+              listening={interactive || onPartitionDoubleClick !== undefined}
+              onMouseDown={(event) => interactive && onPartitionPointerDown(partition.id, event)}
+              onDblClick={() => onPartitionDoubleClick?.(partition.id)}
+              onMouseEnter={(event) => interactive && setStageCursor(event.target, 'move')}
               onMouseLeave={(event) => setStageCursor(event.target, '')}
             />
             <Text
