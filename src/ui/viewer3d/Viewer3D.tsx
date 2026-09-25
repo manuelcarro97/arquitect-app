@@ -7,6 +7,7 @@ import { useActiveFloor } from '../../store/selectors';
 import { FloorMesh } from './FloorMesh';
 import { sceneBounds, SCENE_COLORS, type SceneBounds } from './scene';
 import { WallMesh } from './WallMesh';
+import { ZoneFloors } from './ZoneFloors';
 
 type Controls = ComponentRef<typeof OrbitControls>;
 
@@ -52,7 +53,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const angles = wallAngles(floor);
   const polygon = useMemo(() => perimeterPolygon(floor.perimeter), [floor.perimeter]);
   const bounds = sceneBounds(perimeterCorners(floor.perimeter));
-  const selectedId = selection?.kind === 'segment' ? selection.id : null;
+  const selectedId = selection?.kind === 'segment' || selection?.kind === 'partition' ? selection.id : null;
   const lightTarget = bounds?.center ?? [0, 0, 0];
   const shadowExtent = (bounds?.size ?? 10) * 0.8 + 2;
 
@@ -79,6 +80,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
         </mesh>
 
         {polygon && <FloorMesh polygon={polygon} />}
+        <ZoneFloors zones={floor.zones} />
         {walls.map((wall) => (
           <WallMesh
             key={wall.id}

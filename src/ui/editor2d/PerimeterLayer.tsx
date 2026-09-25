@@ -7,16 +7,18 @@ import {
   perimeterCorners,
   type Id,
   type Perimeter,
-  type Point,
 } from '../../domain';
 import { formatCm } from '../format';
 import { CANVAS_COLORS } from './colors';
+import { midpoint, readableRotation } from './labels';
 
 interface PerimeterLayerProps {
   perimeter: Perimeter;
   scale: number;
   selectedId: Id | null;
   interactive: boolean;
+  /** Shown greyed out and not editable (Distribución mode). */
+  locked?: boolean;
   onWallPointerDown: (segmentId: Id, event: KonvaEventObject<MouseEvent>) => void;
   onLabelClick: (segmentId: Id) => void;
 }
@@ -26,22 +28,13 @@ const LABEL_WIDTH_PX = 90;
 const MIN_HIT_PX = 14;
 const LABEL_GAP_PX = 5;
 
-/** Wall angle turned into a text rotation in [-90, 90) so labels never read upside down. */
-function readableRotation(angle: number): number {
-  if (angle >= 90 && angle < 270) return angle - 180;
-  if (angle >= 270) return angle - 360;
-  return angle;
-}
-
-function midpoint(a: Point, b: Point): Point {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
 
 export function PerimeterLayer({
   perimeter,
   scale,
   selectedId,
   interactive,
+  locked = false,
   onWallPointerDown,
   onLabelClick,
 }: PerimeterLayerProps) {
@@ -64,7 +57,7 @@ export function PerimeterLayer({
         const labelDistance = segment.thickness / 2 + fontSize / 2 + LABEL_GAP_PX / scale;
         const center = midpoint(start, end);
         const labelPosition = { x: center.x + outward.x * labelDistance, y: center.y + outward.y * labelDistance };
-        const color = selected ? CANVAS_COLORS.wallSelected : CANVAS_COLORS.wall;
+        const color = locked ? CANVAS_COLORS.wallLocked : selected ? CANVAS_COLORS.wallSelected : CANVAS_COLORS.wall;
         return (
           <Group key={segment.id}>
             <Line
@@ -96,6 +89,7 @@ export function PerimeterLayer({
               fontSize={fontSize}
               fontStyle={selected ? 'bold' : 'normal'}
               fill={selected ? CANVAS_COLORS.labelSelected : CANVAS_COLORS.label}
+              listening={!locked}
               onClick={() => onLabelClick(segment.id)}
               onMouseEnter={(event) => {
                 const container = event.target.getStage()?.container();

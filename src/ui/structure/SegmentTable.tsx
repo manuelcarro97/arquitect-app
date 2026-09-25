@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   closureGap,
   isPerimeterClosed,
@@ -9,7 +9,8 @@ import {
 } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
-import { formatCm, formatM2, roundForInput } from '../format';
+import { NumberCell, parseNumber } from '../components/NumberCell';
+import { formatCm, formatM2 } from '../format';
 
 const DIRECTIONS = [
   { angle: 0, label: '→', title: 'Derecha (0°)' },
@@ -17,57 +18,6 @@ const DIRECTIONS = [
   { angle: 180, label: '←', title: 'Izquierda (180°)' },
   { angle: 270, label: '↑', title: 'Arriba (270°)' },
 ];
-
-function parseNumber(text: string): number {
-  return Number(text.replace(',', '.'));
-}
-
-/** Commits on Enter/blur, restores on Escape. Remounts (via key) when the stored value changes. */
-function NumberCell({
-  value,
-  onCommit,
-  autoFocus,
-  ariaLabel,
-}: {
-  value: number;
-  onCommit: (value: number) => void;
-  autoFocus: boolean;
-  ariaLabel: string;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (autoFocus) {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
-  }, [autoFocus]);
-
-  const commit = (text: string) => {
-    const parsed = parseNumber(text);
-    if (Number.isFinite(parsed) && parsed !== roundForInput(value)) onCommit(parsed);
-  };
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') event.currentTarget.blur();
-    if (event.key === 'Escape') {
-      event.currentTarget.value = String(roundForInput(value));
-      event.currentTarget.blur();
-    }
-  };
-
-  return (
-    <input
-      ref={inputRef}
-      className="number-input"
-      inputMode="decimal"
-      aria-label={ariaLabel}
-      defaultValue={roundForInput(value)}
-      onBlur={(event) => commit(event.currentTarget.value)}
-      onKeyDown={handleKeyDown}
-    />
-  );
-}
 
 function SegmentRow({ segment, index }: { segment: PerimeterSegment; index: number }) {
   const selection = useProjectStore((state) => state.selection);

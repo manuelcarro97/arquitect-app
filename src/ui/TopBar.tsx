@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useProjectStore } from '../store/projectStore';
-import { useUndoRedo } from '../store/selectors';
+import { isPerimeterClosed } from '../domain';
+import { selectActiveVersion, useUndoRedo } from '../store/selectors';
 import { FileMenu } from './topbar/FileMenu';
 import { createFileActions } from './topbar/useFileActions';
 import { VersionControls } from './topbar/VersionControls';
@@ -11,6 +12,7 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
   const mode = useProjectStore((state) => state.mode);
   const renameProject = useProjectStore((state) => state.renameProject);
   const setMode = useProjectStore((state) => state.setMode);
+  const perimeterClosed = useProjectStore((state) => isPerimeterClosed(selectActiveVersion(state).floor.perimeter));
   const { canUndo, canRedo, undo, redo } = useUndoRedo();
   const fileActions = useMemo(() => createFileActions(onMessage), [onMessage]);
 
@@ -65,7 +67,12 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
           >
             Estructura
           </button>
-          <button disabled title="Tabiques, zonas y muebles — disponible en la siguiente fase">
+          <button
+            className={mode === 'layout' ? 'is-active' : ''}
+            disabled={!perimeterClosed}
+            onClick={() => setMode('layout')}
+            title={perimeterClosed ? 'Tabiques y zonas del interior' : 'Cierra el perímetro para distribuir el interior'}
+          >
             Distribución
           </button>
         </div>

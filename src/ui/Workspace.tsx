@@ -9,6 +9,7 @@ import {
 } from 'react-resizable-panels';
 import { useProjectStore } from '../store/projectStore';
 import { Editor2D } from './editor2d/Editor2D';
+import { LayoutPanel } from './layout/LayoutPanel';
 import { SegmentTable } from './structure/SegmentTable';
 
 // The 3D engine is heavy: load it in its own chunk so the editor appears first.
@@ -49,6 +50,8 @@ function togglePanel(panel: PanelImperativeHandle | null) {
  */
 export function Workspace() {
   const projectId = useProjectStore((state) => state.project.id);
+  const mode = useProjectStore((state) => state.mode);
+  const panelName = mode === 'structure' ? 'Perímetro' : 'Distribución';
   const [viewerPanel, setViewerPanel] = usePanelCallbackRef();
   const [viewerCollapsed, setViewerCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen);
@@ -102,16 +105,16 @@ export function Workspace() {
         <button
           className={`side-tab ${sidebarOpen ? 'is-active' : ''}`}
           onClick={toggleSidebar}
-          title={sidebarOpen ? 'Ocultar el panel de perímetro' : 'Mostrar el panel de perímetro'}
+          title={sidebarOpen ? `Ocultar el panel de ${panelName.toLowerCase()}` : `Mostrar el panel de ${panelName.toLowerCase()}`}
           aria-expanded={sidebarOpen}
         >
-          Perímetro
+          {panelName}
         </button>
       </nav>
 
       {sidebarOpen && (
         <aside className="sidebar">
-          <SegmentTable />
+          {mode === 'structure' ? <SegmentTable /> : <LayoutPanel />}
         </aside>
       )}
     </main>

@@ -19,8 +19,7 @@ export function useGlobalShortcuts() {
       } else if (ctrl && (key === 'y' || (key === 'z' && event.shiftKey))) {
         redo();
       } else if (event.key === 'Delete') {
-        const { selection, removePerimeterSegment } = useProjectStore.getState();
-        if (selection?.kind === 'segment') removePerimeterSegment(selection.id);
+        useProjectStore.getState().removeSelection();
       } else {
         return;
       }

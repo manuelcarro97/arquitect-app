@@ -17,6 +17,15 @@ import {
   removeSegment,
   unwrap,
   updateSegment,
+  addPartition,
+  addZone,
+  isPerimeterClosed,
+  movePartition,
+  removePartition,
+  removeZone,
+  setPartitionEndpoints,
+  setPartitionLength,
+  updateZone,
   type DomainError,
   type Floor,
   type Id,
@@ -25,10 +34,12 @@ import {
   type Project,
   type Result,
   type SegmentInput,
+  type ZoneInput,
 } from '../domain';
 
 export type EditorMode = 'structure' | 'layout';
-export type Selection = { kind: 'segment'; id: Id } | null;
+export type SelectionKind = 'segment' | 'partition' | 'zone';
+export type Selection = { kind: SelectionKind; id: Id } | null;
 export type NewVersionSource = 'current' | 'perimeter' | 'empty';
 
 export interface ProjectState {
@@ -61,6 +72,17 @@ export interface ProjectState {
   updatePerimeterSegment: (segmentId: Id, changes: Partial<SegmentInput>) => void;
   movePerimeterSegment: (segmentId: Id, offset: number) => void;
   removePerimeterSegment: (segmentId: Id) => void;
+
+  addPartition: (a: Point, b: Point) => boolean;
+  movePartition: (partitionId: Id, delta: Point) => void;
+  setPartitionEndpoints: (partitionId: Id, a: Point, b: Point) => void;
+  setPartitionLength: (partitionId: Id, length: number) => void;
+  removePartition: (partitionId: Id) => void;
+  addZone: (input: ZoneInput) => boolean;
+  updateZone: (zoneId: Id, changes: Partial<ZoneInput>) => void;
+  removeZone: (zoneId: Id) => void;
+  /** Deletes whatever is selected (perimeter segment, partition or zone). */
+  removeSelection: () => void;
 }
 
 const DEFAULT_PROJECT_NAME = 'Mi piso';
@@ -70,6 +92,10 @@ function freshProject(name: string): Project {
 }
 
 const initialProject = freshProject(DEFAULT_PROJECT_NAME);
+
+function selectFloor(state: Pick<ProjectState, 'project' | 'activeVersionId'>): Floor {
+  return (findVersion(state.project, state.activeVersionId) ?? state.project.versions[0]).floor;
+}
 
 export const useProjectStore = create<ProjectState>()(
   temporal(
@@ -154,7 +180,13 @@ export const useProjectStore = create<ProjectState>()(
           if (!result.ok) return set({ lastError: result.error });
           set({ project: result.value, activeVersionId: result.value.versions[0].id, selection: null, lastError: null });
         },
-        setMode: (mode) => set({ mode, selection: null }),
+        setMode: (mode) => {
+          const version = findVersion(get().project, get().activeVersionId);
+          if (mode === 'layout' && version && !isPerimeterClosed(version.floor.perimeter)) {
+            return set({ lastError: 'PERIMETER_NOT_CLOSED' });
+          }
+          set({ mode, selection: null });
+        },
         select: (selection) => set({ selection }),
         requestLengthEdit: (segmentId) => set({ lengthEditRequest: segmentId }),
         clearError: () => set({ lastError: null }),
@@ -178,6 +210,41 @@ export const useProjectStore = create<ProjectState>()(
               : result;
           });
           if (removed) set({ selection: null });
+        },
+
+        addPartition: (a, b) => editFloor((floor) => addPartition(floor, a, b)),
+        movePartition: (partitionId, delta) => {
+          editFloor((floor) => movePartition(floor, partitionId, delta));
+        },
+        setPartitionEndpoints: (partitionId, a, b) => {
+          editFloor((floor) => setPartitionEndpoints(floor, partitionId, a, b));
+        },
+        setPartitionLength: (partitionId, length) => {
+          editFloor((floor) => setPartitionLength(floor, partitionId, length));
+        },
+        removePartition: (partitionId) => {
+          if (editFloor((floor) => removePartition(floor, partitionId))) set({ selection: null });
+        },
+        addZone: (input) => {
+          const added = editFloor((floor) => addZone(floor, input));
+          if (added) {
+            const zones = selectFloor(get()).zones;
+            set({ selection: { kind: 'zone', id: zones[zones.length - 1].id } });
+          }
+          return added;
+        },
+        updateZone: (zoneId, changes) => {
+          editFloor((floor) => updateZone(floor, zoneId, changes));
+        },
+        removeZone: (zoneId) => {
+          if (editFloor((floor) => ok(removeZone(floor, zoneId)))) set({ selection: null });
+        },
+        removeSelection: () => {
+          const { selection } = get();
+          if (!selection) return;
+          if (selection.kind === 'segment') get().removePerimeterSegment(selection.id);
+          if (selection.kind === 'partition') get().removePartition(selection.id);
+          if (selection.kind === 'zone') get().removeZone(selection.id);
         },
       };
     },

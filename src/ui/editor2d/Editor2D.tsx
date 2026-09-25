@@ -1,25 +1,16 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import type Konva from 'konva';
 import { useEffect, useState } from 'react';
 import { Layer, Stage } from 'react-konva';
-import { direction, isPerimeterClosed, moveSegment, perimeterCorners, type Id, type Point } from '../../domain';
+import { perimeterCorners, type Point } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
 import { useElementSize } from '../hooks/useElementSize';
 import { CANVAS_COLORS } from './colors';
 import { Grid } from './Grid';
-import { PerimeterLayer } from './PerimeterLayer';
-import { useDrawTool } from './useDrawTool';
+import { useLayoutController } from './layout/useLayoutController';
 import { ANGLE_STEPS, type AngleStep } from './snap';
+import { useStructureController } from './structure/useStructureController';
 import { fitPoints, zoomAt, type Viewport } from './viewport';
-
-type Tool = 'draw' | 'select';
-
-interface WallDrag {
-  segmentId: Id;
-  origin: Point;
-  offset: number;
-}
 
 const ZOOM_STEP = 1.1;
 const PAN_BUTTON_MIDDLE = 1;
@@ -30,53 +21,24 @@ interface Pan {
   viewport: Viewport;
 }
 
-function worldPointer(stage: Konva.Stage | null): Point | null {
-  return stage?.getRelativePointerPosition() ?? null;
-}
-
+/**
+ * 2D plan canvas: owns zoom, pan and the grid, and forwards pointer input to the controller
+ * of the active mode (Estructura or Distribución).
+ */
 export function Editor2D() {
   const floor = useActiveFloor();
-  const perimeter = floor.perimeter;
-  const selection = useProjectStore((state) => state.selection);
-  const select = useProjectStore((state) => state.select);
-  const requestLengthEdit = useProjectStore((state) => state.requestLengthEdit);
-  const movePerimeterSegment = useProjectStore((state) => state.movePerimeterSegment);
+  const mode = useProjectStore((state) => state.mode);
 
   const { ref, width, height } = useElementSize<HTMLDivElement>();
   const [viewport, setViewport] = useState<Viewport | null>(null);
-  const [chosenTool, setChosenTool] = useState<Tool>('draw');
-  const [wallDrag, setWallDrag] = useState<WallDrag | null>(null);
-  const [angleStep, setAngleStep] = useState<AngleStep>(90);
   const [pan, setPan] = useState<Pan | null>(null);
+  const [angleStep, setAngleStep] = useState<AngleStep>(90);
 
-  const closed = isPerimeterClosed(perimeter);
-  const tool: Tool = closed ? 'select' : chosenTool;
-  const effectiveViewport = viewport ?? fitPoints(perimeterCorners(perimeter), width, height);
-
-  const drawTool = useDrawTool({
-    enabled: tool === 'draw',
-    perimeter,
-    scale: effectiveViewport.scale,
-    angleStep,
-    onExit: () => setChosenTool('select'),
-  });
-
-  // Live preview while dragging a wall; the store is only updated on release (one undo step).
-  const previewResult = wallDrag && wallDrag.offset !== 0 ? moveSegment(perimeter, wallDrag.segmentId, wallDrag.offset) : null;
-  const displayedPerimeter = previewResult?.ok ? previewResult.value : perimeter;
-
-  const finishWallDrag = () => {
-    if (!wallDrag) return;
-    if (wallDrag.offset !== 0) movePerimeterSegment(wallDrag.segmentId, wallDrag.offset);
-    setWallDrag(null);
-  };
-
-  useEffect(() => {
-    if (!wallDrag) return;
-    const onMouseUp = () => finishWallDrag();
-    window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  });
+  const effectiveViewport = viewport ?? fitPoints(perimeterCorners(floor.perimeter), width, height);
+  const context = { floor, scale: effectiveViewport.scale, angleStep };
+  const structure = useStructureController({ ...context, active: mode === 'structure' });
+  const layout = useLayoutController({ ...context, active: mode === 'layout' });
+  const controller = mode === 'structure' ? structure : layout;
 
   const handleWheel = (event: KonvaEventObject<WheelEvent>) => {
     event.evt.preventDefault();
@@ -112,46 +74,16 @@ export function Editor2D() {
   }, [pan]);
 
   const handleMouseMove = (event: KonvaEventObject<MouseEvent>) => {
-    const world = worldPointer(event.target.getStage());
-    if (!world) return;
-    if (wallDrag) {
-      const segment = perimeter.segments.find((s) => s.id === wallDrag.segmentId);
-      if (!segment) return;
-      const unit = direction(segment.angle);
-      const normal = { x: -unit.y, y: unit.x };
-      const offset = Math.round((world.x - wallDrag.origin.x) * normal.x + (world.y - wallDrag.origin.y) * normal.y);
-      if (offset !== wallDrag.offset) setWallDrag({ ...wallDrag, offset });
-      return;
-    }
-    drawTool.handlePointerMove(world, event.evt.shiftKey);
+    const world = event.target.getStage()?.getRelativePointerPosition();
+    if (world) controller.onPointerMove(world, event.evt.shiftKey);
   };
 
-  const handleStageClick = (event: KonvaEventObject<MouseEvent>) => {
+  const handleClick = (event: KonvaEventObject<MouseEvent>) => {
     if (event.evt.button !== 0) return;
     const stage = event.target.getStage();
-    const world = worldPointer(stage);
-    if (!world) return;
-    if (tool === 'draw') {
-      drawTool.handleClick(world);
-    } else if (event.target === stage) {
-      select(null);
-    }
+    const world = stage?.getRelativePointerPosition();
+    if (world) controller.onClick(world, event.target === stage);
   };
-
-  const handleWallPointerDown = (segmentId: Id, event: KonvaEventObject<MouseEvent>) => {
-    if (event.evt.button !== 0) return;
-    event.cancelBubble = true;
-    const world = worldPointer(event.target.getStage());
-    select({ kind: 'segment', id: segmentId });
-    if (world) setWallDrag({ segmentId, origin: world, offset: 0 });
-  };
-
-  const handleLabelClick = (segmentId: Id) => {
-    select({ kind: 'segment', id: segmentId });
-    requestLengthEdit(segmentId);
-  };
-
-  const selectedId = selection?.kind === 'segment' ? selection.id : null;
 
   return (
     <div className="editor2d" ref={ref} style={{ background: CANVAS_COLORS.background }}>
@@ -165,41 +97,34 @@ export function Editor2D() {
           y={effectiveViewport.y}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
-          onContextMenu={(event) => event.evt.preventDefault()}
           onMouseMove={handleMouseMove}
-          onMouseLeave={drawTool.clearPointer}
-          onClick={handleStageClick}
-          style={{ cursor: pan ? 'grabbing' : tool === 'draw' ? 'crosshair' : 'default' }}
+          onClick={handleClick}
+          onContextMenu={(event) => event.evt.preventDefault()}
+          style={{ cursor: pan ? 'grabbing' : controller.cursor }}
         >
           <Layer>
             <Grid viewport={effectiveViewport} width={width} height={height} />
-            <PerimeterLayer
-              perimeter={displayedPerimeter}
-              scale={effectiveViewport.scale}
-              selectedId={selectedId}
-              interactive={tool === 'select'}
-              onWallPointerDown={handleWallPointerDown}
-              onLabelClick={handleLabelClick}
-            />
-            {drawTool.overlay}
+            {controller.layers}
           </Layer>
         </Stage>
       )}
 
       <div className="editor2d__toolbar">
-        <button
-          className={tool === 'draw' ? 'is-active' : ''}
-          disabled={closed}
-          onClick={() => setChosenTool('draw')}
-          title={closed ? 'El perímetro ya está cerrado' : 'Dibujar tramos'}
-        >
-          ✏️ Dibujar
+        {controller.tools.map((tool) => (
+          <button
+            key={tool.id}
+            className={tool.active ? 'is-active' : ''}
+            disabled={tool.disabled}
+            title={tool.title}
+            onClick={tool.onClick}
+          >
+            {tool.label}
+          </button>
+        ))}
+        <button onClick={() => setViewport(fitPoints(perimeterCorners(floor.perimeter), width, height))}>
+          ⤢ Encuadrar
         </button>
-        <button className={tool === 'select' ? 'is-active' : ''} onClick={() => setChosenTool('select')}>
-          ↖ Seleccionar
-        </button>
-        <button onClick={() => setViewport(fitPoints(perimeterCorners(perimeter), width, height))}>⤢ Encuadrar</button>
-        {tool === 'draw' && (
+        {controller.showAngleSnap && (
           <div className="segmented" role="group" aria-label="Ajuste de ángulo" title="Ajuste de ángulo al dibujar (Shift = libre)">
             {ANGLE_STEPS.map((step) => (
               <button key={step} className={angleStep === step ? 'is-active' : ''} onClick={() => setAngleStep(step)}>
@@ -210,18 +135,7 @@ export function Editor2D() {
         )}
       </div>
 
-      {wallDrag && wallDrag.offset !== 0 && (
-        <div className="editor2d__hint">
-          Desplazamiento: {wallDrag.offset > 0 ? '+' : ''}
-          {wallDrag.offset} cm {previewResult && !previewResult.ok && '— no se puede mover tanto'}
-        </div>
-      )}
-      {!wallDrag && (drawTool.hint || tool === 'select') && (
-        <div className="editor2d__hint">
-          {drawTool.hint ??
-            'Clic en una pared para seleccionarla · arrástrala para moverla · clic en una cota para editarla · Supr para borrar · botón derecho o central para mover el plano'}
-        </div>
-      )}
+      {controller.hint && <div className="editor2d__hint">{controller.hint}</div>}
     </div>
   );
 }

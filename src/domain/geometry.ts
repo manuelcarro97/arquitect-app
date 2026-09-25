@@ -125,6 +125,24 @@ export function segmentInsidePolygon(a: Point, b: Point, polygon: Point[]): bool
   return true;
 }
 
+export function closestPointOnSegment(p: Point, a: Point, b: Point): Point {
+  const t = Math.min(1, Math.max(0, projectionParameter(p, a, b)));
+  return lerp(a, b, t);
+}
+
+/**
+ * Distance along the ray origin + t·unitDirection (t > 0) where it crosses segment ab, or null if it does not.
+ */
+export function rayHitsSegment(origin: Point, unitDirection: Point, a: Point, b: Point): number | null {
+  const edge = { x: b.x - a.x, y: b.y - a.y };
+  const denominator = unitDirection.x * edge.y - unitDirection.y * edge.x;
+  if (Math.abs(denominator) < EPSILON) return null;
+  const t = ((a.x - origin.x) * edge.y - (a.y - origin.y) * edge.x) / denominator;
+  const s = ((a.x - origin.x) * unitDirection.y - (a.y - origin.y) * unitDirection.x) / denominator;
+  if (t <= EPSILON || s < -EPSILON || s > 1 + EPSILON) return null;
+  return t;
+}
+
 /** Intersection of the infinite lines p1 + t·d1 and p2 + s·d2, or null if parallel. */
 export function lineIntersection(p1: Point, d1: Point, p2: Point, d2: Point): Point | null {
   const denominator = d1.x * d2.y - d1.y * d2.x;
