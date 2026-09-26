@@ -23,3 +23,20 @@ export function parseBackup(text: string): ProjectResult {
   const { project, formatVersion } = data as { project?: unknown; formatVersion?: unknown };
   return readProject(project, formatVersion);
 }
+
+const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+const MAX_NAME_LENGTH = 80;
+
+/** File name for the backup of `project`, valid on Windows, macOS, Linux and phones. */
+export function backupFileName(projectName: string): string {
+  let safe = projectName
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\p{Cc}/gu, '')
+    .trim()
+    .replace(/[. ]+$/, '')
+    .slice(0, MAX_NAME_LENGTH)
+    .trim();
+  if (safe === '') safe = 'proyecto';
+  if (WINDOWS_RESERVED.test(safe)) safe = `${safe}_`;
+  return `${safe}${BACKUP_EXTENSION}`;
+}

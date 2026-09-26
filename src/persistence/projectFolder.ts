@@ -1,8 +1,9 @@
-import type { Floor, Id, Project, Version } from '../domain';
+import type { Id, Version } from '../domain';
 import { FORMAT_VERSION, readFloor } from './floorFormat';
+import type { ProjectResult } from './projectFormat';
 
 /**
- * On-disk layout of a project:
+ * Project folders saved by earlier versions of the app (before cloud saving). They are only read, to import them:
  *
  *   <Project name>/
  *   ├─ proyecto.json        manifest: project name and ordered list of versions → file
@@ -13,86 +14,10 @@ export const MANIFEST_FILE = 'proyecto.json';
 const MANIFEST_FORMAT = 'arquitect-app-project';
 const VERSION_FORMAT = 'arquitect-app-version';
 
-interface ManifestEntry {
-  id: Id;
-  name: string;
-  createdAt: string;
-  file: string;
-}
-
 interface Manifest {
-  format: typeof MANIFEST_FORMAT;
-  formatVersion: number;
   id: Id;
   name: string;
-  versions: ManifestEntry[];
-}
-
-interface VersionFile {
-  format: typeof VERSION_FORMAT;
-  formatVersion: number;
-  id: Id;
-  floor: Floor;
-}
-
-export interface FolderFile {
-  name: string;
-  content: string;
-}
-
-const WINDOWS_RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
-const MAX_NAME_LENGTH = 80;
-
-/** Turns any user-given name into a valid Windows/macOS/Linux file or folder name. */
-export function safeFileName(name: string, fallback: string): string {
-  let safe = name
-    .replace(/[\\/:*?"<>|]/g, '')
-    .replace(/\p{Cc}/gu, '')
-    .trim()
-    .replace(/[. ]+$/, '')
-    .slice(0, MAX_NAME_LENGTH)
-    .trim();
-  if (safe === '') safe = fallback;
-  if (WINDOWS_RESERVED.test(safe)) safe = `${safe}_`;
-  return safe;
-}
-
-/** One unique `.json` file name per version (case-insensitive, never the manifest's name). */
-export function versionFileNames(versions: Version[]): string[] {
-  const taken = new Set([MANIFEST_FILE.toLowerCase()]);
-  return versions.map((version) => {
-    const base = safeFileName(version.name, 'version');
-    let candidate = `${base}.json`;
-    for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${base} (${n}).json`;
-    taken.add(candidate.toLowerCase());
-    return candidate;
-  });
-}
-
-export function buildProjectFolder(project: Project): { manifest: FolderFile; versions: FolderFile[] } {
-  const fileNames = versionFileNames(project.versions);
-  const manifest: Manifest = {
-    format: MANIFEST_FORMAT,
-    formatVersion: FORMAT_VERSION,
-    id: project.id,
-    name: project.name,
-    versions: project.versions.map((version, i) => ({
-      id: version.id,
-      name: version.name,
-      createdAt: version.createdAt,
-      file: fileNames[i],
-    })),
-  };
-  const versions = project.versions.map((version, i) => {
-    const file: VersionFile = {
-      format: VERSION_FORMAT,
-      formatVersion: FORMAT_VERSION,
-      id: version.id,
-      floor: version.floor,
-    };
-    return { name: fileNames[i], content: JSON.stringify(file, null, 2) };
-  });
-  return { manifest: { name: MANIFEST_FILE, content: JSON.stringify(manifest, null, 2) }, versions };
+  versions: { id: Id; name: string; createdAt: string; file: string }[];
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -107,9 +32,9 @@ function parseJson(text: string): unknown {
   }
 }
 
-export type ManifestResult = { ok: true; manifest: Manifest } | { ok: false; message: string };
+type ManifestResult = { ok: true; manifest: Manifest } | { ok: false; message: string };
 
-export function parseManifest(text: string): ManifestResult {
+function parseManifest(text: string): ManifestResult {
   const data = parseJson(text);
   if (!isObject(data) || data.format !== MANIFEST_FORMAT) {
     return { ok: false, message: `${MANIFEST_FILE} no es un índice de proyecto válido.` };
@@ -135,8 +60,6 @@ export function parseManifest(text: string): ManifestResult {
   return { ok: true, manifest: data as unknown as Manifest };
 }
 
-export type ProjectResult = { ok: true; project: Project } | { ok: false; message: string };
-
 /** Rebuilds a project from its manifest, reading each version file through `readFile`. */
 export async function readProjectFolder(
   manifestText: string,
@@ -159,18 +82,4 @@ export async function readProjectFolder(
     versions.push({ id: entry.id, name: entry.name, createdAt: entry.createdAt, floor: floor.floor });
   }
   return { ok: true, project: { id: manifest.id, name: manifest.name, versions } };
-}
-
-/**
- * Version files listed in the previous manifest that the new save no longer writes
- * (deleted or renamed versions). Only files the app itself created are ever returned.
- */
-export function staleVersionFiles(previousManifestText: string | null, newFileNames: string[]): string[] {
-  if (previousManifestText === null) return [];
-  const previous = parseManifest(previousManifestText);
-  if (!previous.ok) return [];
-  const kept = new Set(newFileNames.map((name) => name.toLowerCase()));
-  return previous.manifest.versions
-    .map((entry) => entry.file)
-    .filter((file) => !kept.has(file.toLowerCase()) && file.toLowerCase() !== MANIFEST_FILE);
 }

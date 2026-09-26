@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createProject, duplicateVersion, unwrap, type Project } from '../domain';
-import {
-  buildProjectFolder,
-  MANIFEST_FILE,
-  readProjectFolder,
-  safeFileName,
-  staleVersionFiles,
-  versionFileNames,
-} from './projectFolder';
+import { MANIFEST_FILE, readProjectFolder } from './projectFolder';
 
 function projectWithVersions(...names: string[]): Project {
   let project = unwrap(createProject('Casa Calle X'));
@@ -15,56 +8,41 @@ function projectWithVersions(...names: string[]): Project {
   return project;
 }
 
-describe('file names', () => {
-  it('removes characters Windows does not allow and reserved names', () => {
-    expect(safeFileName('Baño 1/2: "nuevo"?', 'x')).toBe('Baño 12 nuevo');
-    expect(safeFileName('  ...  ', 'version')).toBe('version');
-    expect(safeFileName('con', 'x')).toBe('con_');
-    expect(safeFileName('reforma.', 'x')).toBe('reforma');
+/** The files an earlier version of the app wrote for `project` (format 2). */
+function oldFolderFiles(project: Project): { manifest: string; files: Map<string, string> } {
+  const entries = project.versions.map((version, i) => ({ ...version, file: `v${i}.json` }));
+  const manifest = JSON.stringify({
+    format: 'arquitect-app-project',
+    formatVersion: 2,
+    id: project.id,
+    name: project.name,
+    versions: entries.map(({ id, name, createdAt, file }) => ({ id, name, createdAt, file })),
   });
+  const files = new Map(
+    entries.map((entry) => [
+      entry.file,
+      JSON.stringify({ format: 'arquitect-app-version', formatVersion: 2, id: entry.id, floor: entry.floor }),
+    ]),
+  );
+  return { manifest, files };
+}
 
-  it('gives each version a unique file and never clashes with the manifest', () => {
-    const project = projectWithVersions('2 baños', '2 BAÑOS', 'proyecto');
-    expect(versionFileNames(project.versions)).toEqual([
-      'Estado actual.json',
-      '2 baños.json',
-      '2 BAÑOS (2).json',
-      'proyecto (2).json',
-    ]);
-  });
-});
-
-describe('save and open round trip', () => {
+describe('importing old project folders', () => {
   it('rebuilds the same project from the folder files', async () => {
     const project = projectWithVersions('2 baños');
-    const folder = buildProjectFolder(project);
-    const files = new Map(folder.versions.map((file) => [file.name, file.content]));
-    const result = await readProjectFolder(folder.manifest.content, async (name) => files.get(name) ?? null);
+    const { manifest, files } = oldFolderFiles(project);
+    const result = await readProjectFolder(manifest, async (name) => files.get(name) ?? null);
     expect(result).toEqual({ ok: true, project });
-    expect(folder.manifest.name).toBe(MANIFEST_FILE);
   });
 
   it('reports a missing version file by name', async () => {
-    const folder = buildProjectFolder(projectWithVersions('2 baños'));
-    const result = await readProjectFolder(folder.manifest.content, async () => null);
-    expect(result).toEqual({ ok: false, message: 'Falta el fichero de la versión «Estado actual» (Estado actual.json).' });
+    const { manifest } = oldFolderFiles(projectWithVersions());
+    const result = await readProjectFolder(manifest, async () => null);
+    expect(result).toEqual({ ok: false, message: 'Falta el fichero de la versión «Estado actual» (v0.json).' });
   });
 
   it('rejects folders whose manifest is not ours', async () => {
     const result = await readProjectFolder('{"hello": 1}', async () => null);
-    expect(result.ok).toBe(false);
-  });
-});
-
-describe('staleVersionFiles', () => {
-  it('lists only files from the previous manifest that are no longer written', () => {
-    const before = buildProjectFolder(projectWithVersions('2 baños', 'Cocina abierta'));
-    const stale = staleVersionFiles(before.manifest.content, ['Estado actual.json', 'Cocina abierta v2.json']);
-    expect(stale).toEqual(['2 baños.json', 'Cocina abierta.json']);
-  });
-
-  it('never deletes anything without a previous manifest', () => {
-    expect(staleVersionFiles(null, [])).toEqual([]);
-    expect(staleVersionFiles('not json', [])).toEqual([]);
+    expect(result).toEqual({ ok: false, message: `${MANIFEST_FILE} no es un índice de proyecto válido.` });
   });
 });

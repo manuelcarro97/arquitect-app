@@ -1,9 +1,12 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAuthStore } from '../cloud/authStore';
 import { useProjectStore } from '../store/projectStore';
 import { isPerimeterClosed } from '../domain';
 import { selectActiveVersion, useUndoRedo } from '../store/selectors';
+import { ConfirmDialog } from './components/ConfirmDialog';
+import { AccountButton } from './topbar/AccountButton';
 import { FileMenu } from './topbar/FileMenu';
-import { createFileActions } from './topbar/useFileActions';
+import { createFileActions, type AskConfirm } from './topbar/useFileActions';
 import { VersionControls } from './topbar/VersionControls';
 
 export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
@@ -14,13 +17,21 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
   const setMode = useProjectStore((state) => state.setMode);
   const perimeterClosed = useProjectStore((state) => isPerimeterClosed(selectActiveVersion(state).floor.perimeter));
   const { canUndo, canRedo, undo, redo } = useUndoRedo();
-  const fileActions = useMemo(() => createFileActions(onMessage), [onMessage]);
+  const signedIn = useAuthStore((state) => state.user !== null);
+  const [question, setQuestion] = useState<{ message: string; confirmLabel: string; answer: (ok: boolean) => void } | null>(
+    null,
+  );
+  const askConfirm = useCallback<AskConfirm>(
+    (message, confirmLabel) => new Promise((resolve) => setQuestion({ message, confirmLabel, answer: resolve })),
+    [],
+  );
+  const fileActions = useMemo(() => createFileActions(onMessage, askConfirm), [onMessage, askConfirm]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
         event.preventDefault();
-        void fileActions.save(event.shiftKey);
+        void fileActions.save();
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -43,16 +54,11 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
           onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
         />
         {hasUnsavedChanges && (
-          <span className="topbar__unsaved" title="Hay cambios que no están guardados en el fichero">
+          <span className="topbar__unsaved" title="Hay cambios que no están guardados en la nube">
             ● sin guardar
           </span>
         )}
-        <FileMenu
-          hasUnsavedChanges={hasUnsavedChanges}
-          onNew={fileActions.createNew}
-          onOpen={() => void fileActions.open()}
-          onSaveAs={() => void fileActions.save(true)}
-        />
+        <FileMenu hasUnsavedChanges={hasUnsavedChanges} actions={fileActions} />
       </div>
 
       <VersionControls />
@@ -101,10 +107,27 @@ export function TopBar({ onMessage }: { onMessage: (text: string) => void }) {
         <button className="icon-only" onClick={redo} disabled={!canRedo} title="Rehacer (Ctrl+Y)">
           ↷
         </button>
-        <button className="primary-button" onClick={() => void fileActions.save(false)} title="Guardar (Ctrl+S)">
+        <button
+          className="primary-button"
+          onClick={() => void fileActions.save()}
+          disabled={!signedIn}
+          title={signedIn ? 'Guardar en la nube (Ctrl+S)' : 'Entra con Google para guardar en la nube'}
+        >
           Guardar
         </button>
+        <AccountButton onMessage={onMessage} />
       </div>
+
+      {question && (
+        <ConfirmDialog
+          message={question.message}
+          confirmLabel={question.confirmLabel}
+          onAnswer={(confirmed) => {
+            question.answer(confirmed);
+            setQuestion(null);
+          }}
+        />
+      )}
     </header>
   );
 }

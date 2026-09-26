@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createProject, duplicateVersion, unwrap } from '../domain';
-import { parseBackup, serializeBackup } from './backupFile';
+import { backupFileName, parseBackup, serializeBackup } from './backupFile';
 
 function sampleProject() {
   const project = unwrap(createProject('Casa'));
@@ -29,5 +29,13 @@ describe('backup file', () => {
       ok: false,
       message: 'La versión «2 baños» dato no válido en tabique.',
     });
+  });
+});
+
+describe('backupFileName', () => {
+  it('removes characters Windows does not allow and reserved names', () => {
+    expect(backupFileName('Baño 1/2: "nuevo"?\\')).toBe('Baño 12 nuevo.reforma.json');
+    expect(backupFileName('  ...  ')).toBe('proyecto.reforma.json');
+    expect(backupFileName('con')).toBe('con_.reforma.json');
   });
 });
