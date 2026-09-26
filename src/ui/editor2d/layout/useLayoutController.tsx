@@ -26,6 +26,7 @@ import { usePartitionTool } from './usePartitionTool';
 import { useZoneTool } from './useZoneTool';
 import { ZoneLayer } from './ZoneLayer';
 import { useDragEnd } from '../dragEnd';
+import { formatCm } from '../../format';
 
 type LayoutTool = 'select' | 'partition' | 'zone' | 'door' | 'window';
 
@@ -40,6 +41,14 @@ const SELECT_HINT =
 
 function worldFrom(event: KonvaEventObject<PointerEvent>): Point | null {
   return event.target.getStage()?.getRelativePointerPosition() ?? null;
+}
+
+/** Length of a partition while one of its ends is dragged to `point`. */
+function partitionLengthReadout(floor: Floor, id: Id, end: PartitionEnd, point: Point): string | undefined {
+  const partition = floor.partitions.find((p) => p.id === id);
+  if (!partition) return undefined;
+  const fixed = end === 'a' ? partition.b : partition.a;
+  return `Largo: ${formatCm(Math.round(distance(fixed, point) * 10) / 10)}`;
 }
 
 /** Applies the drag in progress to the floor, for previewing. Returns null if the move is not allowed. */
@@ -136,6 +145,16 @@ export function useLayoutController({ floor, scale, angleStep, active, layers }:
     setTool(next);
   };
 
+  const dragReadout = !drag
+    ? undefined
+    : !previewFloor
+      ? 'Ahí no: el tabique saldría del perímetro'
+      : drag.kind === 'partition'
+        ? `Desplazamiento: ${drag.offset > 0 ? '+' : ''}${drag.offset} cm`
+        : drag.kind === 'endpoint'
+          ? partitionLengthReadout(floor, drag.id, drag.end, drag.point)
+          : undefined;
+
   const hint = !closed
     ? 'El perímetro no está cerrado: ciérralo en modo Estructura para distribuir el interior.'
     : drag && !previewFloor
@@ -181,6 +200,7 @@ export function useLayoutController({ floor, scale, angleStep, active, layers }:
     showAngleSnap: tool === 'partition',
     toolOptions: openings.toolOptions,
     lengthEntry: partitionTool.lengthEntry,
+    readout: dragReadout ?? openings.readout ?? partitionTool.readout,
     layers: (
       <>
         {layers.finishes && <FloorFinishFill floor={floor} />}

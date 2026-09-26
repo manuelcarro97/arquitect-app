@@ -146,9 +146,15 @@ export function usePartitionTool({ enabled, floor, scale, angleStep, onExit }: P
   const lengthEntry: LengthEntry | undefined =
     enabled && start ? { value: typed, onChange: (value) => setTyped(sanitizeTypedLength(value)), onSubmit: commit } : undefined;
 
+  const readout =
+    enabled && start && preview
+      ? `${formatCm(Math.round(preview.length * 10) / 10)} · ${formatDegrees(preview.angle)}`
+      : undefined;
+
   return {
     overlay,
     hint,
+    readout,
     lengthEntry,
     handlePointerMove: (world: Point, shiftKey: boolean) => {
       setPointer(world);

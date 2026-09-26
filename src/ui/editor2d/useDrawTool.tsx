@@ -175,5 +175,13 @@ export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: Dr
       ? { value: typed, onChange: (value) => setTyped(sanitizeTypedLength(value)), onSubmit: commit }
       : undefined;
 
-  return { overlay, hint, lengthEntry, handleClick, handlePointerMove, clearPointer: () => setPointer(null) };
+  const readout = !enabled
+    ? undefined
+    : snapsToStart
+      ? 'Cerrar el perímetro'
+      : preview
+        ? `${formatCm(preview.length)} · ${formatDegrees(preview.angle)}`
+        : undefined;
+
+  return { overlay, hint, readout, lengthEntry, handleClick, handlePointerMove, clearPointer: () => setPointer(null) };
 }

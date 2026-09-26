@@ -144,6 +144,7 @@ export function Editor2D() {
         toolActive={placingFurniture || controller.tools.some((tool) => tool.active && tool.id !== 'select')}
         onFinish={controller.onSecondaryClick}
         lengthEntry={controller.lengthEntry}
+        readout={controller.readout}
       />
     );
     return touchActionsSlot ? createPortal(actions, touchActionsSlot) : actions;

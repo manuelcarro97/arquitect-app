@@ -6,6 +6,8 @@ interface TouchActionsProps {
   toolActive: boolean;
   onFinish: () => void;
   lengthEntry: LengthEntry | undefined;
+  /** Live measurement of what is being drawn or dragged. */
+  readout: string | undefined;
 }
 
 const ROTATE_STEP = 90;
@@ -14,7 +16,7 @@ const ROTATE_STEP = 90;
  * Buttons floating over the plan on touch screens, for what the mouse and keyboard do on a computer:
  * finishing a tool (right click / Esc), rotating, duplicating and deleting (R, Supr) and typing a length.
  */
-export function TouchActions({ toolActive, onFinish, lengthEntry }: TouchActionsProps) {
+export function TouchActions({ toolActive, onFinish, lengthEntry, readout }: TouchActionsProps) {
   const selection = useProjectStore((state) => state.selection);
   const furniture = useProjectStore((state) =>
     state.selection?.kind === 'furniture'
@@ -28,10 +30,15 @@ export function TouchActions({ toolActive, onFinish, lengthEntry }: TouchActions
   const removeSelection = useProjectStore((state) => state.removeSelection);
   const deletable = selection !== null && ['segment', 'partition', 'zone', 'opening', 'furniture'].includes(selection.kind);
 
-  if (!toolActive && !deletable && !lengthEntry) return null;
+  if (!toolActive && !deletable && !lengthEntry && !readout) return null;
 
   return (
     <div className="touch-actions">
+      {readout && (
+        <output className="touch-actions__readout" aria-live="polite">
+          {readout}
+        </output>
+      )}
       {lengthEntry && (
         <form
           className="touch-actions__length"

@@ -182,9 +182,13 @@ export function useOpenings({ floor, scale, placing, selectable, onExitTool }: O
       ? `Posición: ${drag.offset} cm desde el inicio de la pared${dragResult && !dragResult.ok ? ' — no cabe ahí' : ''}`
       : null;
 
+  // Only the parts worth repeating on touch screens: where the opening is and whether it fits.
+  const readout = drag || (preview && !preview.valid) ? (hint ?? undefined) : undefined;
+
   return {
     layer,
     toolOptions,
+    readout,
     hint,
     isDragging: drag !== null,
     /** Returns true when the openings feature used the event (dragging). */

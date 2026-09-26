@@ -121,6 +121,7 @@ export function useStructureController({ floor, scale, angleStep, active, layers
     showAngleSnap: tool === 'draw',
     toolOptions: openings.toolOptions,
     lengthEntry: drawTool.lengthEntry,
+    readout: dragHint ?? openings.readout ?? drawTool.readout,
     layers: (
       <>
         {layers.finishes && <FloorFinishFill floor={floor} />}

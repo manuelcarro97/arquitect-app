@@ -45,6 +45,11 @@ export interface EditorController {
   showAngleSnap: boolean;
   /** Extra controls for the active tool (e.g. door/window sizes). */
   toolOptions?: ReactNode;
+  /**
+   * Live measurement of what is being drawn or dragged (e.g. "350 cm · 90°"). On touch screens the label
+   * next to the pointer is under the finger, so it is repeated with the touch buttons.
+   */
+  readout?: string;
   /** Present while drawing a segment whose length can be typed. */
   lengthEntry?: LengthEntry;
   /** Konva nodes, in world coordinates (cm). */
