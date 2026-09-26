@@ -120,6 +120,7 @@ export function useStructureController({ floor, scale, angleStep, active, layers
     ],
     showAngleSnap: tool === 'draw',
     toolOptions: openings.toolOptions,
+    lengthEntry: drawTool.lengthEntry,
     layers: (
       <>
         {layers.finishes && <FloorFinishFill floor={floor} />}

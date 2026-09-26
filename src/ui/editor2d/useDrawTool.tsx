@@ -4,6 +4,7 @@ import { distance, perimeterCorners, type Perimeter, type Point } from '../../do
 import { useProjectStore } from '../../store/projectStore';
 import { formatCm, formatDegrees } from '../format';
 import { CANVAS_COLORS } from './colors';
+import { sanitizeTypedLength, type LengthEntry } from './controller';
 import { alignWithCorners, computeDrawPreview, LENGTH_STEP_CM, snapPointToGrid, type AngleStep } from './snap';
 
 const CLOSE_SNAP_PX = 14;
@@ -169,5 +170,10 @@ export function useDrawTool({ enabled, perimeter, scale, angleStep, onExit }: Dr
           ? `Longitud tecleada: ${typed} cm — Enter para confirmar, Esc para borrar.`
           : 'Clic para añadir tramo · teclea la medida + Enter · Shift = ángulo libre · Esc o clic derecho = seleccionar';
 
-  return { overlay, hint, handleClick, handlePointerMove, clearPointer: () => setPointer(null) };
+  const lengthEntry: LengthEntry | undefined =
+    enabled && !awaitingStart
+      ? { value: typed, onChange: (value) => setTyped(sanitizeTypedLength(value)), onSubmit: commit }
+      : undefined;
+
+  return { overlay, hint, lengthEntry, handleClick, handlePointerMove, clearPointer: () => setPointer(null) };
 }

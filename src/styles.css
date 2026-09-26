@@ -1095,3 +1095,38 @@ select:focus {
 .editor2d__stage {
   touch-action: none;
 }
+
+/* Touch buttons over the plan: finish tool, rotate/duplicate/delete, typed length */
+.touch-actions {
+  position: absolute;
+  left: 50%;
+  bottom: 36px;
+  z-index: 5;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 12%);
+}
+
+.touch-actions button {
+  min-height: 40px;
+  padding: 0 12px;
+}
+
+.touch-actions__length {
+  display: flex;
+  gap: 4px;
+}
+
+.touch-actions__length input {
+  width: 110px;
+  min-height: 40px;
+  font-size: 16px; /* 16px or more: phones do not zoom the page when the field gets focus */
+}

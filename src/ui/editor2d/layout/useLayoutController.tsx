@@ -180,6 +180,7 @@ export function useLayoutController({ floor, scale, angleStep, active, layers }:
     ],
     showAngleSnap: tool === 'partition',
     toolOptions: openings.toolOptions,
+    lengthEntry: partitionTool.lengthEntry,
     layers: (
       <>
         {layers.finishes && <FloorFinishFill floor={floor} />}

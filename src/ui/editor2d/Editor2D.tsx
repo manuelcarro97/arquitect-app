@@ -7,6 +7,7 @@ import { useActiveFloor } from '../../store/selectors';
 import { useVisibleLayers } from '../../store/viewStore';
 import { LayerToggles } from '../components/LayerToggles';
 import { useElementSize } from '../hooks/useElementSize';
+import { useIsCompact, useIsTouchScreen } from '../hooks/useMediaQuery';
 import { CANVAS_COLORS } from './colors';
 import { Grid } from './Grid';
 import { useFinishesController } from './finishes/useFinishesController';
@@ -15,6 +16,7 @@ import { useLayoutController } from './layout/useLayoutController';
 import { ElevationView } from '../openings/ElevationView';
 import { ANGLE_STEPS, type AngleStep } from './snap';
 import { useStructureController } from './structure/useStructureController';
+import { TouchActions } from './TouchActions';
 import { PLAN_STAGE_CLASS, useTouchInput } from './useTouchInput';
 import { fitPoints, zoomAt, type Viewport } from './viewport';
 
@@ -41,6 +43,10 @@ export function Editor2D() {
   const floor = useActiveFloor();
   const mode = useProjectStore((state) => state.mode);
   const elevationOpen = useProjectStore((state) => state.elevationWallId !== null);
+  const placingFurniture = useProjectStore((state) => state.placingFurniture !== null);
+  const touchScreen = useIsTouchScreen();
+  const compact = useIsCompact();
+  const showTouchActions = touchScreen || compact;
 
   const { ref, width, height } = useElementSize<HTMLDivElement>();
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -182,6 +188,13 @@ export function Editor2D() {
       </div>
 
       {controller.hint && <div className="editor2d__hint">{controller.hint}</div>}
+      {showTouchActions && (
+        <TouchActions
+          toolActive={placingFurniture || controller.tools.some((tool) => tool.active && tool.id !== 'select')}
+          onFinish={controller.onSecondaryClick}
+          lengthEntry={controller.lengthEntry}
+        />
+      )}
       <LayerToggles view="plan" />
       {elevationOpen && <ElevationView />}
     </div>

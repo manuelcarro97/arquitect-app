@@ -14,6 +14,19 @@ export interface EditorContext {
   layers: LayerVisibility;
 }
 
+/** Exact length for the segment being drawn, typed in a field (phones have no keyboard shortcut for it). */
+export interface LengthEntry {
+  value: string;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+}
+
+/** Keeps only digits and one decimal comma, as the keyboard shortcut does. */
+export function sanitizeTypedLength(value: string): string {
+  const [whole, ...decimals] = value.replace(/\./g, ',').replace(/[^0-9,]/g, '').split(',');
+  return decimals.length > 0 ? `${whole},${decimals.join('')}` : whole;
+}
+
 export interface ToolButton {
   id: string;
   label: string;
@@ -32,6 +45,8 @@ export interface EditorController {
   showAngleSnap: boolean;
   /** Extra controls for the active tool (e.g. door/window sizes). */
   toolOptions?: ReactNode;
+  /** Present while drawing a segment whose length can be typed. */
+  lengthEntry?: LengthEntry;
   /** Konva nodes, in world coordinates (cm). */
   layers: ReactNode;
   hint: string | null;

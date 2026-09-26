@@ -4,7 +4,7 @@ import type { Floor, Point } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import { formatCm, formatDegrees } from '../../format';
 import { CANVAS_COLORS } from '../colors';
-import { isTypingInForm } from '../controller';
+import { isTypingInForm, sanitizeTypedLength, type LengthEntry } from '../controller';
 import { snapLengthToWalls, snapPoint, snapTargetsFor } from '../pointSnap';
 import { alignWithCorners, computeDrawPreview, LENGTH_STEP_CM, type AngleStep } from '../snap';
 import { SnapMarker } from './SnapMarker';
@@ -143,9 +143,13 @@ export function usePartitionTool({ enabled, floor, scale, angleStep, onExit }: P
         ? `Longitud tecleada: ${typed} cm — Enter para confirmar, Esc para borrar.`
         : 'Clic donde acaba el tabique · teclea la medida + Enter · Shift = ángulo libre · Esc o clic derecho = terminar';
 
+  const lengthEntry: LengthEntry | undefined =
+    enabled && start ? { value: typed, onChange: (value) => setTyped(sanitizeTypedLength(value)), onSubmit: commit } : undefined;
+
   return {
     overlay,
     hint,
+    lengthEntry,
     handlePointerMove: (world: Point, shiftKey: boolean) => {
       setPointer(world);
       setFreeAngle(shiftKey);
