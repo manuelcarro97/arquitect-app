@@ -1,6 +1,7 @@
-import type { Project, Version } from '../domain';
+import type { Project } from '../domain';
 import { useProjectStore } from '../store/projectStore';
-import { FORMAT_VERSION, readFloor } from './floorFormat';
+import { FORMAT_VERSION } from './floorFormat';
+import { readProject } from './projectFormat';
 
 const STORAGE_KEY = 'arquitect-app:autosave';
 const DEBOUNCE_MS = 500;
@@ -22,13 +23,6 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function readVersion(value: unknown, formatVersion: unknown): Version | null {
-  if (!isObject(value) || typeof value.id !== 'string' || typeof value.name !== 'string') return null;
-  if (typeof value.createdAt !== 'string') return null;
-  const floor = readFloor(value.floor, formatVersion);
-  return floor.ok ? { id: value.id, name: value.name, createdAt: value.createdAt, floor: floor.floor } : null;
-}
-
 /** The autosaved project, or null if there is none or it cannot be trusted (then the app starts empty). */
 export function parseAutosave(text: string): Autosave | null {
   let data: unknown;
@@ -38,16 +32,8 @@ export function parseAutosave(text: string): Autosave | null {
     return null;
   }
   if (!isObject(data) || (data.format !== AUTOSAVE_FORMAT && data.format !== LEGACY_FORMAT)) return null;
-  const project = data.project;
-  if (!isObject(project) || typeof project.id !== 'string' || typeof project.name !== 'string') return null;
-  if (!Array.isArray(project.versions) || project.versions.length === 0) return null;
-
-  const versions = project.versions.map((version) => readVersion(version, data.formatVersion));
-  if (versions.some((version) => version === null)) return null;
-  return {
-    project: { id: project.id, name: project.name, versions: versions as Version[] },
-    saved: data.saved === true,
-  };
+  const project = readProject(data.project, data.formatVersion);
+  return project.ok ? { project: project.project, saved: data.saved === true } : null;
 }
 
 /** Last project edited in this browser, so a page reload does not lose work. */
