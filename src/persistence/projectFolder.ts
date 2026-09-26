@@ -1,4 +1,5 @@
 import type { Floor, Id, Project, Version } from '../domain';
+import { FORMAT_VERSION, readFloor } from './floorFormat';
 
 /**
  * On-disk layout of a project:
@@ -11,7 +12,6 @@ import type { Floor, Id, Project, Version } from '../domain';
 export const MANIFEST_FILE = 'proyecto.json';
 const MANIFEST_FORMAT = 'arquitect-app-project';
 const VERSION_FORMAT = 'arquitect-app-version';
-export const FOLDER_FORMAT_VERSION = 2;
 
 interface ManifestEntry {
   id: Id;
@@ -73,7 +73,7 @@ export function buildProjectFolder(project: Project): { manifest: FolderFile; ve
   const fileNames = versionFileNames(project.versions);
   const manifest: Manifest = {
     format: MANIFEST_FORMAT,
-    formatVersion: FOLDER_FORMAT_VERSION,
+    formatVersion: FORMAT_VERSION,
     id: project.id,
     name: project.name,
     versions: project.versions.map((version, i) => ({
@@ -86,7 +86,7 @@ export function buildProjectFolder(project: Project): { manifest: FolderFile; ve
   const versions = project.versions.map((version, i) => {
     const file: VersionFile = {
       format: VERSION_FORMAT,
-      formatVersion: FOLDER_FORMAT_VERSION,
+      formatVersion: FORMAT_VERSION,
       id: version.id,
       floor: version.floor,
     };
@@ -114,7 +114,7 @@ export function parseManifest(text: string): ManifestResult {
   if (!isObject(data) || data.format !== MANIFEST_FORMAT) {
     return { ok: false, message: `${MANIFEST_FILE} no es un índice de proyecto válido.` };
   }
-  if (typeof data.formatVersion !== 'number' || data.formatVersion > FOLDER_FORMAT_VERSION) {
+  if (typeof data.formatVersion !== 'number' || data.formatVersion > FORMAT_VERSION) {
     return { ok: false, message: 'El proyecto se guardó con una versión más nueva de la aplicación.' };
   }
   const versions = data.versions;
@@ -126,24 +126,13 @@ export function parseManifest(text: string): ManifestResult {
         isObject(entry) &&
         typeof entry.id === 'string' &&
         typeof entry.name === 'string' &&
+        typeof entry.createdAt === 'string' &&
         typeof entry.file === 'string',
     );
   if (typeof data.id !== 'string' || typeof data.name !== 'string' || !validEntries) {
     return { ok: false, message: `${MANIFEST_FILE} está incompleto o dañado.` };
   }
   return { ok: true, manifest: data as unknown as Manifest };
-}
-
-function looksLikeFloor(value: unknown): value is Floor {
-  return (
-    isObject(value) &&
-    isObject(value.perimeter) &&
-    Array.isArray(value.perimeter.segments) &&
-    Array.isArray(value.partitions) &&
-    Array.isArray(value.openings) &&
-    Array.isArray(value.furniture) &&
-    Array.isArray(value.zones)
-  );
 }
 
 export type ProjectResult = { ok: true; project: Project } | { ok: false; message: string };
@@ -162,10 +151,12 @@ export async function readProjectFolder(
     const text = await readFile(entry.file);
     if (text === null) return { ok: false, message: `Falta el fichero de la versión «${entry.name}» (${entry.file}).` };
     const data = parseJson(text);
-    if (!isObject(data) || data.format !== VERSION_FORMAT || !looksLikeFloor(data.floor)) {
-      return { ok: false, message: `El fichero ${entry.file} está dañado.` };
+    if (!isObject(data) || data.format !== VERSION_FORMAT) {
+      return { ok: false, message: `El fichero ${entry.file} está dañado o no es una versión de un proyecto.` };
     }
-    versions.push({ id: entry.id, name: entry.name, createdAt: entry.createdAt, floor: data.floor });
+    const floor = readFloor(data.floor, data.formatVersion);
+    if (!floor.ok) return { ok: false, message: `La versión «${entry.name}» (${entry.file}) ${floor.message}.` };
+    versions.push({ id: entry.id, name: entry.name, createdAt: entry.createdAt, floor: floor.floor });
   }
   return { ok: true, project: { id: manifest.id, name: manifest.name, versions } };
 }
