@@ -11,7 +11,7 @@ export const MIN_SCALE = 0.03;
 export const MAX_SCALE = 8;
 const FIT_MARGIN_PX = 80;
 
-function clampScale(scale: number): number {
+export function clampScale(scale: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
 }
 
