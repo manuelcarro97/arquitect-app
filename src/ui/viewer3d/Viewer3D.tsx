@@ -9,7 +9,9 @@ import { sceneBounds, SCENE_COLORS, type SceneBounds } from './scene';
 import { FurnitureMeshes } from './FurnitureMeshes';
 import { OpeningMeshes } from './OpeningMeshes';
 import { ViewpointArrow } from './ViewpointArrow';
-import { WallMesh } from "./WallMesh";
+import { WallMesh } from './WallMesh';
+import { useVisibleLayers } from '../../store/viewStore';
+import { LayerToggles } from '../components/LayerToggles';
 import { ZoneFloors } from './ZoneFloors';
 
 type Controls = ComponentRef<typeof OrbitControls>;
@@ -53,6 +55,15 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const select = useProjectStore((state) => state.select);
   const elevationWallId = useProjectStore((state) => state.elevationWallId);
   const elevationSide = useProjectStore((state) => state.elevationSide);
+  const layers = useVisibleLayers('viewer3d', mode);
+  // Zone floors: tinted zones when zones are shown; floors with their own finish whenever finishes are shown.
+  const visibleZoneFloors = layers.zones
+    ? layers.finishes
+      ? floor.zones
+      : floor.zones.map((zone) => ({ ...zone, floorFinish: undefined }))
+    : layers.finishes
+      ? floor.zones.filter((zone) => zone.floorFinish)
+      : [];
   const [controls, setControls] = useState<Controls | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
 
@@ -87,20 +98,22 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
           <meshStandardMaterial color={SCENE_COLORS.ground} roughness={1} />
         </mesh>
 
-        {polygon && <FloorMesh polygon={polygon} finish={floor.floorFinish} />}
-        <ZoneFloors zones={floor.zones} />
+        {polygon && <FloorMesh polygon={polygon} finish={layers.finishes ? floor.floorFinish : undefined} />}
+        <ZoneFloors zones={visibleZoneFloors} />
         <OpeningMeshes floor={floor} />
-        <FurnitureMeshes
+        {layers.furniture && (
+          <FurnitureMeshes
           furniture={floor.furniture}
           selectedId={selection?.kind === 'furniture' ? selection.id : null}
           editable={mode === 'furnish'}
           walls={walls}
         />
+        )}
         {elevationWall && <ViewpointArrow wall={elevationWall} side={elevationSide} />}
         {walls.map((wall) => (
           <WallMesh
             key={wall.id}
-            wall={wall}
+            wall={layers.finishes ? wall : { ...wall, finishA: undefined, finishB: undefined }}
             angle={angles.get(wall.id) ?? 0}
             openings={floor.openings}
             selected={wall.id === selectedId}
@@ -122,6 +135,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
         </button>
       </div>
       {walls.length === 0 && <div className="viewer3d__empty">Dibuja el perímetro en el plano para verlo en 3D</div>}
+      <LayerToggles view="viewer3d" />
       <div className="viewer3d__hint">Arrastrar: girar · botón derecho: desplazar · rueda: zoom · doble clic en una pared: vista frontal</div>
     </div>
   );
