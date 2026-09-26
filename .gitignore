@@ -9,3 +9,6 @@ dist/
 docs/
 .claude/
 CLAUDE.md
+
+# Firebase local cache
+.firebase/
