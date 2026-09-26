@@ -1,7 +1,7 @@
 import { OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { useEffect, useEffectEvent, useMemo, useState, type ComponentRef } from 'react';
-import { getWalls, perimeterCorners, perimeterPolygon, type Floor } from '../../domain';
+import { getWalls, isPerimeterClosed, perimeterCorners, perimeterPolygon, type Floor } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
 import { useActiveFloor } from '../../store/selectors';
 import { FloorMesh } from './FloorMesh';
@@ -9,6 +9,7 @@ import { sceneBounds, SCENE_COLORS, type SceneBounds } from './scene';
 import { FurnitureMeshes } from './FurnitureMeshes';
 import { OpeningMeshes } from './OpeningMeshes';
 import { ViewpointArrow } from './ViewpointArrow';
+import { wallEnds } from './wallJoints';
 import { WallMesh } from './WallMesh';
 import { useVisibleLayers } from '../../store/viewStore';
 import { LayerToggles } from '../components/LayerToggles';
@@ -67,7 +68,8 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
   const [controls, setControls] = useState<Controls | null>(null);
   const [fitRequest, setFitRequest] = useState(0);
 
-  const walls = getWalls(floor);
+  const walls = useMemo(() => getWalls(floor), [floor]);
+  const ends = useMemo(() => wallEnds(walls, isPerimeterClosed(floor.perimeter)), [walls, floor.perimeter]);
   const elevationWall = walls.find((wall) => wall.id === elevationWallId);
   const angles = wallAngles(floor);
   const polygon = useMemo(() => perimeterPolygon(floor.perimeter), [floor.perimeter]);
@@ -116,6 +118,7 @@ export default function Viewer3D({ onHide }: { onHide: () => void }) {
             wall={layers.finishes ? wall : { ...wall, finishA: undefined, finishB: undefined }}
             angle={angles.get(wall.id) ?? 0}
             openings={floor.openings}
+            ends={ends.get(wall.id)}
             selected={wall.id === selectedId}
             highlighted={wall.id === elevationWallId}
             onFaceClick={mode === 'finishes' ? (side) => select({ kind: 'wallFace', id: wall.id, side }) : undefined}
