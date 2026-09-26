@@ -13,8 +13,8 @@ interface PartitionLayerProps {
   selectedId: Id | null;
   invalidIds: Set<Id>;
   interactive: boolean;
-  onPartitionPointerDown: (partitionId: Id, event: KonvaEventObject<MouseEvent>) => void;
-  onHandlePointerDown: (partitionId: Id, end: PartitionEnd, event: KonvaEventObject<MouseEvent>) => void;
+  onPartitionPointerDown: (partitionId: Id, event: KonvaEventObject<PointerEvent>) => void;
+  onHandlePointerDown: (partitionId: Id, end: PartitionEnd, event: KonvaEventObject<PointerEvent>) => void;
   /** Double click on a partition (opens its elevation view). When given, partitions listen even if not interactive. */
   onPartitionDoubleClick?: (partitionId: Id) => void;
 }
@@ -62,8 +62,9 @@ export function PartitionLayer({
               lineCap="butt"
               hitStrokeWidth={Math.max(partition.thickness, MIN_HIT_PX / scale)}
               listening={interactive || onPartitionDoubleClick !== undefined}
-              onMouseDown={(event) => interactive && onPartitionPointerDown(partition.id, event)}
+              onPointerDown={(event) => interactive && onPartitionPointerDown(partition.id, event)}
               onDblClick={() => onPartitionDoubleClick?.(partition.id)}
+              onDblTap={() => onPartitionDoubleClick?.(partition.id)}
               onMouseEnter={(event) => interactive && setStageCursor(event.target, 'move')}
               onMouseLeave={(event) => setStageCursor(event.target, '')}
             />
@@ -92,7 +93,7 @@ export function PartitionLayer({
                   fill={CANVAS_COLORS.handle}
                   stroke={CANVAS_COLORS.wallSelected}
                   strokeWidth={2 / scale}
-                  onMouseDown={(event) => onHandlePointerDown(partition.id, end, event)}
+                  onPointerDown={(event) => onHandlePointerDown(partition.id, end, event)}
                   onMouseEnter={(event) => setStageCursor(event.target, 'crosshair')}
                   onMouseLeave={(event) => setStageCursor(event.target, '')}
                 />

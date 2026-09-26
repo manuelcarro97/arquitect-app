@@ -15,6 +15,7 @@ import { useLayoutController } from './layout/useLayoutController';
 import { ElevationView } from '../openings/ElevationView';
 import { ANGLE_STEPS, type AngleStep } from './snap';
 import { useStructureController } from './structure/useStructureController';
+import { PLAN_STAGE_CLASS, useTouchInput } from './useTouchInput';
 import { fitPoints, zoomAt, type Viewport } from './viewport';
 
 const ZOOM_STEP = 1.1;
@@ -33,7 +34,8 @@ const CLICK_MAX_TRAVEL_PX = 4;
 
 /**
  * 2D plan canvas: owns zoom, pan and the grid, and forwards pointer input to the controller
- * of the active mode (Estructura or Distribución).
+ * of the active mode. Mouse: left button draws/selects, right or middle button pans, wheel zooms.
+ * Fingers: one finger works like the left button, two fingers pan and zoom.
  */
 export function Editor2D() {
   const floor = useActiveFloor();
@@ -55,6 +57,13 @@ export function Editor2D() {
   const controllers = { structure, layout, furnish, finishes };
   const controller = controllers[mode];
 
+  const touch = useTouchInput(ref, {
+    viewport: effectiveViewport,
+    setViewport,
+    onMove: (world) => controller.onPointerMove(world, false),
+    onRelease: (world, onEmpty) => controller.onClick(world, onEmpty),
+  });
+
   const handleWheel = (event: KonvaEventObject<WheelEvent>) => {
     event.evt.preventDefault();
     const pointer = event.target.getStage()?.getPointerPosition();
@@ -64,7 +73,12 @@ export function Editor2D() {
   };
 
   // Panning uses the right or middle button so the left button is only for drawing and selecting.
-  const handleMouseDown = (event: KonvaEventObject<MouseEvent>) => {
+  const handlePointerDown = (event: KonvaEventObject<PointerEvent>) => {
+    if (event.evt.pointerType === 'touch') {
+      // Reaches the stage only when no shape stopped it: the finger touched an empty spot.
+      if (event.target === event.target.getStage()) touch.markTouchedEmpty();
+      return;
+    }
     if (event.evt.button !== PAN_BUTTON_MIDDLE && event.evt.button !== PAN_BUTTON_RIGHT) return;
     event.evt.preventDefault();
     setPan({
@@ -100,13 +114,16 @@ export function Editor2D() {
     };
   }, [pan]);
 
-  const handleMouseMove = (event: KonvaEventObject<MouseEvent>) => {
+  // Fingers are handled by useTouchInput.
+  const handlePointerMove = (event: KonvaEventObject<PointerEvent>) => {
+    if (event.evt.pointerType === 'touch') return;
     const world = event.target.getStage()?.getRelativePointerPosition();
     if (world) controller.onPointerMove(world, event.evt.shiftKey);
   };
 
   const handleClick = (event: KonvaEventObject<MouseEvent>) => {
-    if (event.evt.button !== 0) return;
+    // Browsers emulate a click after a tap: the tap was already handled as a finger release.
+    if (event.evt.button !== 0 || touch.wasRecentTouch()) return;
     const stage = event.target.getStage();
     const world = stage?.getRelativePointerPosition();
     if (world) controller.onClick(world, event.target === stage);
@@ -116,6 +133,7 @@ export function Editor2D() {
     <div className="editor2d" ref={ref} style={{ background: CANVAS_COLORS.background }}>
       {width > 0 && height > 0 && (
         <Stage
+          className={PLAN_STAGE_CLASS}
           width={width}
           height={height}
           scaleX={effectiveViewport.scale}
@@ -123,8 +141,8 @@ export function Editor2D() {
           x={effectiveViewport.x}
           y={effectiveViewport.y}
           onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
           onClick={handleClick}
           onContextMenu={(event) => event.evt.preventDefault()}
           style={{ cursor: pan?.moved ? 'grabbing' : controller.cursor }}

@@ -1,5 +1,5 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { direction, invalidPartitionIds, isPerimeterClosed, moveSegment, type Id, type Point } from '../../../domain';
 import { useProjectStore } from '../../../store/projectStore';
 import type { EditorContext, EditorController } from '../controller';
@@ -10,6 +10,7 @@ import { useFurniture } from '../furniture/useFurniture';
 import { useOpenings } from '../openings/useOpenings';
 import { PerimeterLayer } from '../PerimeterLayer';
 import { useDrawTool } from '../useDrawTool';
+import { useDragEnd } from '../dragEnd';
 
 type StructureTool = 'draw' | 'select' | 'door' | 'window';
 
@@ -50,17 +51,16 @@ export function useStructureController({ floor, scale, angleStep, active, layers
     wallDrag && wallDrag.offset !== 0 ? moveSegment(perimeter, wallDrag.segmentId, wallDrag.offset) : null;
   const displayedPerimeter = previewResult?.ok ? previewResult.value : perimeter;
 
-  useEffect(() => {
-    if (!wallDrag) return;
-    const onMouseUp = () => {
-      if (wallDrag.offset !== 0) movePerimeterSegment(wallDrag.segmentId, wallDrag.offset);
+  useDragEnd(
+    wallDrag !== null,
+    () => {
+      if (wallDrag && wallDrag.offset !== 0) movePerimeterSegment(wallDrag.segmentId, wallDrag.offset);
       setWallDrag(null);
-    };
-    window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  }, [wallDrag, movePerimeterSegment]);
+    },
+    () => setWallDrag(null),
+  );
 
-  const handleWallPointerDown = (segmentId: Id, event: KonvaEventObject<MouseEvent>) => {
+  const handleWallPointerDown = (segmentId: Id, event: KonvaEventObject<PointerEvent>) => {
     if (event.evt.button !== 0) return;
     event.cancelBubble = true;
     const world = event.target.getStage()?.getRelativePointerPosition();

@@ -19,7 +19,7 @@ interface PerimeterLayerProps {
   interactive: boolean;
   /** Shown greyed out and not editable (Distribución mode). */
   locked?: boolean;
-  onWallPointerDown: (segmentId: Id, event: KonvaEventObject<MouseEvent>) => void;
+  onWallPointerDown: (segmentId: Id, event: KonvaEventObject<PointerEvent>) => void;
   onLabelClick: (segmentId: Id) => void;
   /** Double click on a wall (opens its elevation view). When given, walls listen even if not interactive. */
   onWallDoubleClick?: (segmentId: Id) => void;
@@ -70,8 +70,9 @@ export function PerimeterLayer({
               lineCap="square"
               hitStrokeWidth={Math.max(segment.thickness, MIN_HIT_PX / scale)}
               listening={interactive || onWallDoubleClick !== undefined}
-              onMouseDown={(event) => interactive && onWallPointerDown(segment.id, event)}
+              onPointerDown={(event) => interactive && onWallPointerDown(segment.id, event)}
               onDblClick={() => onWallDoubleClick?.(segment.id)}
+              onDblTap={() => onWallDoubleClick?.(segment.id)}
               onMouseEnter={(event) => {
                 if (!interactive) return;
                 const container = event.target.getStage()?.container();
@@ -96,6 +97,7 @@ export function PerimeterLayer({
               fill={selected ? CANVAS_COLORS.labelSelected : CANVAS_COLORS.label}
               listening={!locked}
               onClick={() => onLabelClick(segment.id)}
+              onTap={() => onLabelClick(segment.id)}
               onMouseEnter={(event) => {
                 const container = event.target.getStage()?.container();
                 if (container) container.style.cursor = 'text';

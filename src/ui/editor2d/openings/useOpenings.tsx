@@ -20,6 +20,7 @@ import { DEFAULT_PRESET_ID, findPreset, presetsOf } from '../../openings/presets
 import { CANVAS_COLORS } from '../colors';
 import { isTypingInForm } from '../controller';
 import { OpeningSymbol } from './OpeningSymbol';
+import { useDragEnd } from '../dragEnd';
 
 /** How close (screen px) the pointer must be to a wall to place an opening on it. */
 const WALL_REACH_PX = 18;
@@ -83,15 +84,14 @@ export function useOpenings({ floor, scale, placing, selectable, onExitTool }: O
   const invalid = new Set(invalidOpeningIds(displayed));
   if (dragResult && !dragResult.ok && drag) invalid.add(drag.id);
 
-  useEffect(() => {
-    if (!drag) return;
-    const onMouseUp = () => {
-      if (drag.offset !== drag.startOffset) useProjectStore.getState().updateOpening(drag.id, { offset: drag.offset });
+  useDragEnd(
+    drag !== null,
+    () => {
+      if (drag && drag.offset !== drag.startOffset) useProjectStore.getState().updateOpening(drag.id, { offset: drag.offset });
       setDrag(null);
-    };
-    window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  }, [drag]);
+    },
+    () => setDrag(null),
+  );
 
   useEffect(() => {
     if (!placing) return;
@@ -104,7 +104,7 @@ export function useOpenings({ floor, scale, placing, selectable, onExitTool }: O
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [placing, onExitTool]);
 
-  const startDrag = (opening: Opening, event: KonvaEventObject<MouseEvent>) => {
+  const startDrag = (opening: Opening, event: KonvaEventObject<PointerEvent>) => {
     if (event.evt.button !== 0) return;
     event.cancelBubble = true;
     select({ kind: 'opening', id: opening.id });

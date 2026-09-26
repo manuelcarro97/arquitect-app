@@ -11,7 +11,7 @@ interface OpeningSymbolProps {
   color: string;
   opacity?: number;
   interactive: boolean;
-  onPointerDown?: (event: KonvaEventObject<MouseEvent>) => void;
+  onPointerDown?: (event: KonvaEventObject<PointerEvent>) => void;
 }
 
 const ARC_STEPS = 16;
@@ -59,7 +59,7 @@ export function OpeningSymbol({ wall, opening, scale, color, opacity = 1, intera
         stroke={color}
         strokeWidth={line}
         listening={interactive}
-        onMouseDown={onPointerDown}
+        onPointerDown={onPointerDown}
         onMouseEnter={(event) => setStageCursor(event.target, 'ew-resize')}
         onMouseLeave={(event) => setStageCursor(event.target, '')}
       />

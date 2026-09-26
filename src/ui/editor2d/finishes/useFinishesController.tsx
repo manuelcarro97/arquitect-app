@@ -43,7 +43,7 @@ export function useFinishesController({ floor, scale, active, layers }: EditorCo
   const furniture = useFurniture({ floor, scale, active: false, selectable: false });
   const openings = useOpenings({ floor, scale, placing: null, selectable: false, onExitTool: noTool });
 
-  const selectFace = (wallId: Id, event: KonvaEventObject<MouseEvent>) => {
+  const selectFace = (wallId: Id, event: KonvaEventObject<PointerEvent>) => {
     if (!active || event.evt.button !== 0) return;
     event.cancelBubble = true;
     const wall = walls.find((w) => w.id === wallId);

@@ -1090,3 +1090,8 @@ select:focus {
   margin: 0 0 16px;
   line-height: 1.45;
 }
+
+/* Fingers on the plan are gestures (draw, drag, pan, zoom), never page scrolling or browser zoom. */
+.editor2d__stage {
+  touch-action: none;
+}

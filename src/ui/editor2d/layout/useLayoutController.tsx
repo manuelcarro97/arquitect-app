@@ -1,5 +1,5 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   angleBetween,
   direction,
@@ -25,6 +25,7 @@ import { PartitionLayer, type PartitionEnd } from './PartitionLayer';
 import { usePartitionTool } from './usePartitionTool';
 import { useZoneTool } from './useZoneTool';
 import { ZoneLayer } from './ZoneLayer';
+import { useDragEnd } from '../dragEnd';
 
 type LayoutTool = 'select' | 'partition' | 'zone' | 'door' | 'window';
 
@@ -37,7 +38,7 @@ const SNAP_PX = 10;
 const SELECT_HINT =
   'Clic en un tabique o zona para seleccionarlo · arrastra el tabique para moverlo · arrastra los puntos blancos para ajustar · doble clic en una pared = vista frontal · Supr para borrar';
 
-function worldFrom(event: KonvaEventObject<MouseEvent>): Point | null {
+function worldFrom(event: KonvaEventObject<PointerEvent>): Point | null {
   return event.target.getStage()?.getRelativePointerPosition() ?? null;
 }
 
@@ -99,9 +100,10 @@ export function useLayoutController({ floor, scale, angleStep, active, layers }:
   const invalidIds = new Set(invalidPartitionIds(displayed));
   if (drag && !previewFloor && drag.kind !== 'vertex') invalidIds.add(drag.id);
 
-  useEffect(() => {
-    if (!drag) return;
-    const onMouseUp = () => {
+  useDragEnd(
+    drag !== null,
+    () => {
+      if (!drag) return;
       const { movePartition, movePartitionEndpoint: moveEnd, updateZone: setZone } = store();
       if (drag.kind === 'partition' && drag.offset !== 0) {
         movePartition(drag.id, drag.offset);
@@ -113,16 +115,15 @@ export function useLayoutController({ floor, scale, angleStep, active, layers }:
         if (zone) setZone(drag.zoneId, { points: zone.points.map((p, i) => (i === drag.index ? drag.point : p)) });
       }
       setDrag(null);
-    };
-    window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  }, [drag, floor, store]);
+    },
+    () => setDrag(null),
+  );
 
   const selectedPartitionId = selection?.kind === 'partition' ? selection.id : null;
   const selectedZoneId = selection?.kind === 'zone' ? selection.id : null;
   const interactive = active && tool === 'select';
 
-  const startDrag = (event: KonvaEventObject<MouseEvent>, makeDrag: (world: Point) => Drag) => {
+  const startDrag = (event: KonvaEventObject<PointerEvent>, makeDrag: (world: Point) => Drag) => {
     if (event.evt.button !== 0) return;
     event.cancelBubble = true;
     const world = worldFrom(event);

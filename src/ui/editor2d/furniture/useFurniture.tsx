@@ -15,6 +15,7 @@ import { pieceColor, pieceName } from '../../furniture/catalog';
 import { CANVAS_COLORS } from '../colors';
 import { isTypingInForm } from '../controller';
 import { setStageCursor } from '../labels';
+import { useDragEnd } from '../dragEnd';
 
 const SNAP_PX = 14;
 const LABEL_FONT_PX = 11;
@@ -52,7 +53,7 @@ function FurniturePiece({
   stroke: string;
   opacity?: number;
   interactive: boolean;
-  onPointerDown?: (event: KonvaEventObject<MouseEvent>) => void;
+  onPointerDown?: (event: KonvaEventObject<PointerEvent>) => void;
 }) {
   const fontSize = Math.min(LABEL_FONT_PX / scale, item.depth / 3);
   return (
@@ -67,7 +68,7 @@ function FurniturePiece({
         strokeWidth={1.5 / scale}
         cornerRadius={2}
         listening={interactive}
-        onMouseDown={onPointerDown}
+        onPointerDown={onPointerDown}
         onMouseEnter={(event) => interactive && setStageCursor(event.target, 'move')}
         onMouseLeave={(event) => setStageCursor(event.target, '')}
       />
@@ -123,15 +124,14 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
   const outside = new Set(furnitureOutsideIds({ ...floor, furniture: displayed }));
   const selectedId = selection?.kind === 'furniture' ? selection.id : null;
 
-  useEffect(() => {
-    if (!drag) return;
-    const onMouseUp = () => {
-      if (drag.moved) useProjectStore.getState().updateFurniture(drag.id, { x: drag.x, y: drag.y });
+  useDragEnd(
+    drag !== null,
+    () => {
+      if (drag?.moved) useProjectStore.getState().updateFurniture(drag.id, { x: drag.x, y: drag.y });
       setDrag(null);
-    };
-    window.addEventListener('mouseup', onMouseUp);
-    return () => window.removeEventListener('mouseup', onMouseUp);
-  }, [drag]);
+    },
+    () => setDrag(null),
+  );
 
   useEffect(() => {
     if (!active) return;
@@ -154,7 +154,7 @@ export function useFurniture({ floor, scale, active, selectable }: FurnitureOpti
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [active, floor.furniture]);
 
-  const startDrag = (item: Furniture, event: KonvaEventObject<MouseEvent>) => {
+  const startDrag = (item: Furniture, event: KonvaEventObject<PointerEvent>) => {
     if (event.evt.button !== 0) return;
     event.cancelBubble = true;
     select({ kind: 'furniture', id: item.id });

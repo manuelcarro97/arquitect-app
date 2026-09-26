@@ -10,8 +10,8 @@ interface ZoneLayerProps {
   scale: number;
   selectedId: Id | null;
   interactive: boolean;
-  onZonePointerDown: (zoneId: Id, event: KonvaEventObject<MouseEvent>) => void;
-  onVertexPointerDown: (zoneId: Id, index: number, event: KonvaEventObject<MouseEvent>) => void;
+  onZonePointerDown: (zoneId: Id, event: KonvaEventObject<PointerEvent>) => void;
+  onVertexPointerDown: (zoneId: Id, index: number, event: KonvaEventObject<PointerEvent>) => void;
 }
 
 const NAME_FONT_PX = 13;
@@ -37,7 +37,7 @@ export function ZoneLayer({ zones, scale, selectedId, interactive, onZonePointer
               stroke={zone.color}
               strokeWidth={(selected ? 3 : 1) / scale}
               listening={interactive}
-              onMouseDown={(event) => onZonePointerDown(zone.id, event)}
+              onPointerDown={(event) => onZonePointerDown(zone.id, event)}
               onMouseEnter={(event) => setStageCursor(event.target, 'pointer')}
               onMouseLeave={(event) => setStageCursor(event.target, '')}
             />
@@ -76,7 +76,7 @@ export function ZoneLayer({ zones, scale, selectedId, interactive, onZonePointer
                   fill={CANVAS_COLORS.handle}
                   stroke={zone.color}
                   strokeWidth={2 / scale}
-                  onMouseDown={(event) => onVertexPointerDown(zone.id, index, event)}
+                  onPointerDown={(event) => onVertexPointerDown(zone.id, index, event)}
                   onMouseEnter={(event) => setStageCursor(event.target, 'crosshair')}
                   onMouseLeave={(event) => setStageCursor(event.target, '')}
                 />
