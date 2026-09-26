@@ -1306,3 +1306,18 @@ select:focus {
     font-size: 16px;
   }
 }
+
+/* Phone: the touch buttons sit in their own strip above the mode bar instead of over the plan. */
+.touch-actions-strip:empty {
+  display: none;
+}
+
+.touch-actions-strip .touch-actions {
+  position: static;
+  transform: none;
+  max-width: none;
+  border: none;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}

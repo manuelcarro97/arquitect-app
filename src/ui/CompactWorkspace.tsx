@@ -4,6 +4,7 @@ import { useProjectStore, type SelectionKind } from '../store/projectStore';
 import { BottomSheet } from './components/BottomSheet';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { Editor2D } from './editor2d/Editor2D';
+import { TouchActionsSlot } from './editor2d/touchActionsSlot';
 import { MODE_PANEL_NAMES, ModePanel } from './ModePanel';
 import { ModeSwitcher } from './topbar/ModeSwitcher';
 
@@ -39,6 +40,7 @@ export function CompactWorkspace() {
   const placing = useProjectStore((state) => state.placingFurniture !== null);
   const [maximized, setMaximized] = useState<View | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [touchActionsStrip, setTouchActionsStrip] = useState<HTMLDivElement | null>(null);
 
   // Open the sheet when something with details gets selected; close it when a piece starts being placed,
   // so the plan is visible. Adjusted while rendering (React's recommended alternative to an effect).
@@ -74,30 +76,34 @@ export function CompactWorkspace() {
   );
 
   return (
-    <main className="workspace workspace--compact">
-      <div className="compact-views">
-        {maximized === 'plan' && plan}
-        {maximized === 'viewer3d' && viewer}
-        {maximized === null && (
-          <Group orientation="vertical" className="workspace__panels">
-            <Panel id="plan" minSize={140} className="workspace__panel">
-              {plan}
-            </Panel>
-            <Separator className="resize-handle resize-handle--horizontal" />
-            <Panel id="viewer3d" defaultSize="40%" minSize={120} className="workspace__panel">
-              {viewer}
-            </Panel>
-          </Group>
-        )}
+    <TouchActionsSlot value={touchActionsStrip}>
+      <main className="workspace workspace--compact">
+        <div className="compact-views">
+          {maximized === 'plan' && plan}
+          {maximized === 'viewer3d' && viewer}
+          {maximized === null && (
+            <Group orientation="vertical" className="workspace__panels">
+              <Panel id="plan" minSize={140} className="workspace__panel">
+                {plan}
+              </Panel>
+              <Separator className="resize-handle resize-handle--horizontal" />
+              <Panel id="viewer3d" defaultSize="40%" minSize={120} className="workspace__panel">
+                {viewer}
+              </Panel>
+            </Group>
+          )}
 
-        <BottomSheet title={MODE_PANEL_NAMES[mode]} open={sheetOpen} onToggle={() => setSheetOpen((open) => !open)}>
-          <ErrorBoundary area="el panel">
-            <ModePanel mode={mode} />
-          </ErrorBoundary>
-        </BottomSheet>
-      </div>
+          <BottomSheet title={MODE_PANEL_NAMES[mode]} open={sheetOpen} onToggle={() => setSheetOpen((open) => !open)}>
+            <ErrorBoundary area="el panel">
+              <ModePanel mode={mode} />
+            </ErrorBoundary>
+          </BottomSheet>
+        </div>
 
-      <ModeSwitcher variant="tabbar" />
-    </main>
+        {/* Buttons for the selection or tool in use: below the views, never covering the plan. */}
+        <div className="touch-actions-strip" ref={setTouchActionsStrip} />
+        <ModeSwitcher variant="tabbar" />
+      </main>
+    </TouchActionsSlot>
   );
 }

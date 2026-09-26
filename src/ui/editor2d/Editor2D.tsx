@@ -1,5 +1,6 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useContext, useEffect, useEffectEvent, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Layer, Stage } from 'react-konva';
 import { perimeterCorners, type Point } from '../../domain';
 import { useProjectStore } from '../../store/projectStore';
@@ -17,6 +18,7 @@ import { ElevationView } from '../openings/ElevationView';
 import { ANGLE_STEPS, type AngleStep } from './snap';
 import { useStructureController } from './structure/useStructureController';
 import { TouchActions } from './TouchActions';
+import { TouchActionsSlot } from './touchActionsSlot';
 import { PLAN_STAGE_CLASS, useTouchInput } from './useTouchInput';
 import { fitPoints, zoomAt, type Viewport } from './viewport';
 
@@ -47,6 +49,7 @@ export function Editor2D() {
   const touchScreen = useIsTouchScreen();
   const compact = useIsCompact();
   const showTouchActions = touchScreen || compact;
+  const touchActionsSlot = useContext(TouchActionsSlot);
 
   const { ref, width, height } = useElementSize<HTMLDivElement>();
   const [viewport, setViewport] = useState<Viewport | null>(null);
@@ -135,6 +138,17 @@ export function Editor2D() {
     if (world) controller.onClick(world, event.target === stage);
   };
 
+  const renderTouchActions = () => {
+    const actions = (
+      <TouchActions
+        toolActive={placingFurniture || controller.tools.some((tool) => tool.active && tool.id !== 'select')}
+        onFinish={controller.onSecondaryClick}
+        lengthEntry={controller.lengthEntry}
+      />
+    );
+    return touchActionsSlot ? createPortal(actions, touchActionsSlot) : actions;
+  };
+
   return (
     <div className="editor2d" ref={ref} style={{ background: CANVAS_COLORS.background }}>
       {width > 0 && height > 0 && (
@@ -188,13 +202,7 @@ export function Editor2D() {
       </div>
 
       {controller.hint && <div className="editor2d__hint">{controller.hint}</div>}
-      {showTouchActions && (
-        <TouchActions
-          toolActive={placingFurniture || controller.tools.some((tool) => tool.active && tool.id !== 'select')}
-          onFinish={controller.onSecondaryClick}
-          lengthEntry={controller.lengthEntry}
-        />
-      )}
+      {showTouchActions && renderTouchActions()}
       <LayerToggles view="plan" />
       {elevationOpen && <ElevationView />}
     </div>
