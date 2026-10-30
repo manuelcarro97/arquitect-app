@@ -1,12 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only these Google accounts may save projects; anyone else can use the app without saving.
+    // Only the Google accounts listed in the document config/allowedOwners (field `emails`, an array)
+    // may save projects; anyone else can use the app without saving. There is no `match` for `config`,
+    // so clients cannot read or write it: only these rules read it, through get().
     function isAllowedOwner(uid) {
       return request.auth != null
         && request.auth.uid == uid
         && request.auth.token.email_verified == true
-        && request.auth.token.email in ['owner@example.com', 'owner@example.com'];
+        && request.auth.token.email in get(/databases/$(database)/documents/config/allowedOwners).data.emails;
     }
 
     match /users/{uid}/{document=**} {
