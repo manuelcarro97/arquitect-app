@@ -29,6 +29,8 @@ export function SurfaceMaterial({ attach, materialId, fallback, sizeCm, polygonO
   const info = materialInfo(materialId);
   return (
     <meshStandardMaterial
+      // Three only compiles the texture shader when the material is created: rebuild it when a map appears or goes.
+      key={map ? 'textured' : 'plain'}
       attach={attach}
       color={map ? '#ffffff' : (info?.color ?? fallback)}
       map={map}
